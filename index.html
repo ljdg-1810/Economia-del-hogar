@@ -288,7 +288,7 @@
         </div>
       </div>
 
-      <!-- PESTAÑA 3: TDC Y SEGUIMIENTO (SIN TÍTULO DUPLICADO ARRIBA) -->
+      <!-- PESTAÑA 3: TDC Y SEGUIMIENTO -->
       <div id="tab-tdc-seguimiento" class="hidden space-y-4">
         <!-- 1. VENCIMIENTOS Y RESÚMENES BANCARIOS -->
         <div class="space-y-2">
@@ -307,7 +307,7 @@
           </div>
         </div>
 
-        <!-- 2. SEGUIMIENTO Y COBRO DE TERCEROS (DEBAJO DE VENCIMIENTOS) -->
+        <!-- 2. SEGUIMIENTO Y COBRO DE TERCEROS -->
         <div class="space-y-2 pt-2 border-t border-slate-800/80">
           <div class="flex justify-between items-center">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
@@ -459,7 +459,7 @@
       </div>
     </main>
 
-    <!-- MODAL "TOTAL DE PAGOS" -->
+    <!-- MODAL "TOTAL DE PAGOS" CON WHATSAPP -->
     <div id="modal-total-pagos" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-sm space-y-4 shadow-2xl">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -474,18 +474,25 @@
           <span class="text-xs text-slate-400 block font-medium">Liquidación Neta de Pareja:</span>
           <div id="modal-clearing-texto" class="text-sm font-bold text-white">Calculando...</div>
           <div id="modal-clearing-monto" class="text-2xl font-black text-emerald-400">$0 <span class="text-xs font-normal text-slate-400">ARS</span></div>
+          <div id="modal-clearing-subdetalle" class="text-[10px] text-slate-400 border-t border-slate-800/80 pt-1.5 mt-1 space-y-0.5"></div>
         </div>
 
         <div class="space-y-2">
           <span class="text-xs font-bold text-slate-300 block">Montos a Cobrar a Terceros:</span>
-          <div id="modal-lista-externos" class="max-h-48 overflow-y-auto hide-scrollbar space-y-1.5 text-xs">
+          <div id="modal-lista-externos" class="max-h-40 overflow-y-auto hide-scrollbar space-y-1.5 text-xs">
             <div class="text-slate-500 text-center py-2">Sin terceros pendientes.</div>
           </div>
         </div>
 
-        <button onclick="modalTotalPagos(false)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 rounded-xl transition text-xs">
-          Entendido
-        </button>
+        <div class="pt-1 flex flex-col space-y-2">
+          <button onclick="compartirResumenWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition text-xs flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/20">
+            <i class="fa-brands fa-whatsapp text-sm"></i>
+            <span>Compartir Resumen (WhatsApp)</span>
+          </button>
+          <button onclick="modalTotalPagos(false)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 rounded-xl transition text-xs">
+            Cerrar
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1579,7 +1586,7 @@
       }
     }
 
-    // 9. CARGA DE LIQUIDACIÓN Y RENDER DE RESÚMENES Y TERCEROS
+    // 9. CARGA DE LIQUIDACIÓN Y CÁLCULO DE CLEARING CON IMPACTO DE TERCEROS
     async function cargarGastos() {
       const { data, error } = await sbClient
         .from('gastos')
@@ -1591,6 +1598,9 @@
 
       let totalPagaLeandroBruto = 0;
       let totalPagaMariaBruto = 0;
+      let debeLeandroAMaria = 0;
+      let debeMariaALeandro = 0;
+
       let listaTercerosACobrar = [];
       const resumenesTarjetas = {};
 
@@ -1640,12 +1650,15 @@
           distEfectiva = g.distribucion || [];
         }
 
+        // Acumulación de gastos y clearing cruzado de consumo
         distEfectiva.forEach(part => {
           const m = parseFloat(part.monto) || 0;
           if (part.responsable === 'Leandro') {
             totalPagaLeandroBruto += m;
+            if (titularTarjeta === 'María') debeLeandroAMaria += m;
           } else if (part.responsable === 'María') {
             totalPagaMariaBruto += m;
+            if (titularTarjeta === 'Leandro') debeMariaALeandro += m;
           } else {
             const key = `${g.id}_${part.responsable}`;
             const estado = cobrosTercerosMap[key] || 'pendiente';
@@ -1654,13 +1667,25 @@
               nombre: part.responsable,
               monto: m,
               cobrador: part.cobrador || 'No definido',
+              titularTarjeta: titularTarjeta,
               concepto: g.concepto,
               medioPago: g.medios_pago ? g.medios_pago.nombre : 'Tarjeta',
               estado: estado
             });
+
+            // IMPACTO REAL: Si el tercero ya pagó y el cobrador no es el titular de la tarjeta,
+            // el cobrador que recibió el dinero le debe ese monto al titular que pagó el resumen.
+            if (estado === 'cobrado') {
+              if (titularTarjeta === 'Leandro' && part.cobrador === 'María') {
+                debeMariaALeandro += m;
+              } else if (titularTarjeta === 'María' && part.cobrador === 'Leandro') {
+                debeLeandroAMaria += m;
+              }
+            }
           }
         });
 
+        // Agrupación para resúmenes bancarios
         const mpId = g.medio_pago_id || 'sin_medio';
         if (!resumenesTarjetas[mpId]) {
           resumenesTarjetas[mpId] = {
@@ -1795,7 +1820,7 @@
                   ${isCobrado ? 'Cobrado' : 'Pendiente'}
                 </span>
               </div>
-              <span class="text-[10px] text-slate-400 block">${t.concepto} • ${t.medioPago}</span>
+              <span class="text-[10px] text-slate-400 block">${t.concepto} • ${t.medioPago} (${t.titularTarjeta})</span>
               <span class="text-[10px] text-slate-300 block">Cobra: <strong class="${t.cobrador === 'Leandro' ? 'text-blue-400' : 'text-rose-400'}">${t.cobrador}</strong></span>
             </div>
 
@@ -1904,10 +1929,15 @@
       document.getElementById('clearing-col-lean').innerText = `$${Math.round(totalPagaLeandroBruto).toLocaleString()} ARS`;
       document.getElementById('clearing-col-maria').innerText = `$${Math.round(totalPagaMariaBruto).toLocaleString()} ARS`;
 
+      // Guardar información calculada con compensación neta completa
       window.clearingCalculado = {
-        totalLeandro: totalPagaLeandroBruto,
-        totalMaria: totalPagaMariaBruto,
-        terceros: listaTercerosACobrar
+        totalLeandroBruto: totalPagaLeandroBruto,
+        totalMariaBruto: totalPagaMariaBruto,
+        debeLeanAMaria: debeLeandroAMaria,
+        debeMariaALean: debeMariaALeandro,
+        diferenciaNeta: debeLeandroAMaria - debeMariaALeandro,
+        terceros: listaTercerosACobrar,
+        tarjetas: listaCards
       };
     }
 
@@ -1932,42 +1962,47 @@
       await cargarGastos();
     }
 
-    // 10. MODAL TOTAL DE PAGOS
+    // 10. MODAL TOTAL DE PAGOS Y COMPARTIR RESUMEN
     function abrirModalTotalPagos() {
-      const data = window.clearingCalculado || { totalLeandro: 0, totalMaria: 0, terceros: [] };
-      const diff = data.totalLeandro - data.totalMaria;
+      const data = window.clearingCalculado || { diferenciaNeta: 0, debeLeanAMaria: 0, debeMariaALean: 0, terceros: [] };
+      const diff = data.diferenciaNeta;
 
       const txt = document.getElementById('modal-clearing-texto');
       const monto = document.getElementById('modal-clearing-monto');
+      const sub = document.getElementById('modal-clearing-subdetalle');
 
       if (diff > 0) {
-        txt.innerText = 'Leandro debe pagar a María:';
+        txt.innerText = 'Leandro transfiere a María:';
         monto.innerHTML = `$${Math.round(diff).toLocaleString()} <span class="text-xs font-normal text-slate-400">ARS</span>`;
       } else if (diff < 0) {
-        txt.innerText = 'María debe pagar a Leandro:';
+        txt.innerText = 'María transfiere a Leandro:';
         monto.innerHTML = `$${Math.round(Math.abs(diff)).toLocaleString()} <span class="text-xs font-normal text-slate-400">ARS</span>`;
       } else {
         txt.innerText = 'Cuentas perfectamente saldadas';
         monto.innerHTML = `$0 <span class="text-xs font-normal text-slate-400">ARS</span>`;
       }
 
+      sub.innerHTML = `
+        <div class="flex justify-between"><span>Leandro debe cubrir (gastos María + cobros):</span> <strong>$${Math.round(data.debeLeanAMaria).toLocaleString()}</strong></div>
+        <div class="flex justify-between"><span>María debe cubrir (gastos Leandro + cobros):</span> <strong>$${Math.round(data.debeMariaALean).toLocaleString()}</strong></div>
+      `;
+
       const contExt = document.getElementById('modal-lista-externos');
       contExt.innerHTML = '';
 
-      const pendientes = data.terceros.filter(x => x.estado === 'pendiente');
-
-      if (pendientes.length === 0) {
-        contExt.innerHTML = '<div class="text-slate-500 text-center py-2">Sin terceros pendientes de cobro este mes.</div>';
+      if (data.terceros.length === 0) {
+        contExt.innerHTML = '<div class="text-slate-500 text-center py-2">Sin terceros este mes.</div>';
       } else {
-        pendientes.forEach(x => {
+        data.terceros.forEach(x => {
+          const isCobrado = x.estado === 'cobrado';
           const div = document.createElement('div');
           div.className = "flex justify-between items-center p-2 bg-slate-950 rounded-xl border border-slate-800";
           div.innerHTML = `
             <div>
-              <span class="font-bold text-amber-400 block">${x.nombre}</span>
+              <span class="font-bold text-amber-400 block">${x.nombre} <small class="text-[9px] ${isCobrado ? 'text-emerald-400' : 'text-slate-400'}">(${isCobrado ? 'Cobrado' : 'Pendiente'})</small></span>
               <span class="text-[10px] text-slate-400 block">${x.concepto} • Cobra: <strong class="${x.cobrador === 'Leandro' ? 'text-blue-400' : 'text-rose-400'}">${x.cobrador}</strong></span>
             </div>
-            <span class="font-black text-white">$${Math.round(x.monto).toLocaleString()}</span>
+            <span class="font-black ${isCobrado ? 'text-slate-500 line-through' : 'text-white'}">$${Math.round(x.monto).toLocaleString()}</span>
           `;
           contExt.appendChild(div);
         });
@@ -1978,6 +2013,48 @@
 
     function modalTotalPagos(show) {
       document.getElementById('modal-total-pagos').classList.toggle('hidden', !show);
+    }
+
+    function compartirResumenWhatsApp() {
+      const data = window.clearingCalculado;
+      if (!data) return;
+
+      const mesObj = baseMeses.find(m => m.key === mesActivo) || { label: mesActivo };
+      const diff = data.diferenciaNeta;
+
+      let msg = `📊 *LIQUIDACIÓN FINANZAS DEL HOGAR - ${mesObj.label.toUpperCase()}*\n`;
+      msg += `💵 *Tipo de Cambio:* $${tcActual.toLocaleString()}\n`;
+      msg += `---------------------------------\n`;
+
+      if (diff > 0) {
+        msg += `🤝 *TRANSFERENCIA DE PAREJA:*\n👉 *Leandro debe transferir a María:* $${Math.round(diff).toLocaleString()} ARS\n\n`;
+      } else if (diff < 0) {
+        msg += `🤝 *TRANSFERENCIA DE PAREJA:*\n👉 *María debe transferir a Leandro:* $${Math.round(Math.abs(diff)).toLocaleString()} ARS\n\n`;
+      } else {
+        msg += `🤝 *TRANSFERENCIA DE PAREJA:*\n✅ *Cuentas perfectamente equilibradas (0)*\n\n`;
+      }
+
+      if (data.tarjetas && data.tarjetas.length > 0) {
+        msg += `💳 *RESÚMENES A PAGAR POR TARJETA:*\n`;
+        data.tarjetas.forEach(t => {
+          msg += `• *${t.medio.nombre} (${t.medio.titular})*: $${Math.round(t.totalResumen).toLocaleString()} ARS\n`;
+        });
+        msg += `\n`;
+      }
+
+      if (data.terceros && data.terceros.length > 0) {
+        msg += `👥 *COBROS A TERCEROS / NEGOCIO:*\n`;
+        data.terceros.forEach(x => {
+          const check = x.estado === 'cobrado' ? '✅ Cobrado' : '⏳ Pendiente';
+          msg += `• ${x.nombre}: $${Math.round(x.monto).toLocaleString()} (Cobra: ${x.cobrador}) -> ${check}\n`;
+        });
+        msg += `\n`;
+      }
+
+      msg += `_Generado desde la App de Economía del Hogar_`;
+
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
     }
 
     // GESTIÓN DE PESTAÑAS (4 PESTAÑAS Y REINICIO DE SCROLL)
