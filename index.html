@@ -265,7 +265,7 @@
           </div>
         </div>
 
-        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas -->
+        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas (Ubicado arriba) -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
           <div class="grid grid-cols-2 gap-2 text-xs">
@@ -287,7 +287,7 @@
           </div>
         </div>
 
-        <!-- VENCIMIENTOS Y RESÚMENES POR TARJETA (CON FECHAS DE CORTE Y VENCIMIENTO) -->
+        <!-- VENCIMIENTOS Y RESÚMENES POR TARJETA (Ubicado abajo) -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
@@ -420,7 +420,7 @@
           </div>
         </div>
 
-        <!-- SECCIÓN 1: CORTES Y VENCIMIENTO DE TDC -->
+        <!-- CORTES Y VENCIMIENTO DE TDC -->
         <div class="pt-2 border-t border-slate-800/80 space-y-2.5">
           <div class="flex justify-between items-center">
             <h3 class="text-xs font-bold text-white flex items-center">
@@ -1053,7 +1053,7 @@
       await renderModuloTdcFechas();
     }
 
-    // 4. CORTES Y VENCIMIENTO DE TDC (GESTIÓN EN AJUSTES)
+    // 4. CORTES Y VENCIMIENTO DE TDC
     async function cargarTdcFechas() {
       try {
         const { data } = await sbClient.from('tdc_fechas').select('*').eq('mes_anio', mesActivo);
@@ -1144,7 +1144,6 @@
         tipoGastoEsFijo = false;
         resetCuotas();
 
-        // Verificar si estamos en los últimos 5 días del mes en curso
         const hoy = new Date();
         const diasEnMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
         const diaActual = hoy.getDate();
@@ -1702,7 +1701,6 @@
       if (fijosCount === 0) contFijos.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos fijos</div>';
       if (varsCount === 0) contVars.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos variables</div>';
 
-      // RENDERIZAR RESÚMENES DE TARJETAS (CON FECHAS DE CORTE Y VTO ABAJO DE TDC Y NOMBRE)
       const listaCards = Object.values(resumenesTarjetas);
       document.getElementById('count-resumenes-tarjetas').innerText = listaCards.length;
 
@@ -1867,8 +1865,13 @@
       document.getElementById('modal-total-pagos').classList.toggle('hidden', !show);
     }
 
-    // GESTIÓN DE PESTAÑAS
+    // GESTIÓN DE PESTAÑAS (CON REINICIO DE SCROLL HACIA ARRIBA)
     function switchTab(tab) {
+      // Reiniciar scroll al tope
+      const mainEl = document.querySelector('main');
+      if (mainEl) mainEl.scrollTop = 0;
+      window.scrollTo(0, 0);
+
       document.getElementById('tab-cargar').classList.add('hidden');
       document.getElementById('tab-clearing').classList.add('hidden');
       document.getElementById('tab-config').classList.add('hidden');
