@@ -12,7 +12,6 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    /* Eliminar flechas de inputs numéricos (Chrome, Safari, Edge, Opera y Firefox) */
     input::-webkit-outer-spin-button,
     input::-webkit-inner-spin-button {
       -webkit-appearance: none;
@@ -75,7 +74,6 @@
         </div>
 
         <form id="form-gasto" onsubmit="guardarGasto(event)" class="space-y-3.5">
-          <!-- Monto Obligatorio -->
           <div>
             <label class="block text-xs font-medium text-slate-400 mb-1">Monto Total (ARS) <span class="text-rose-500">*</span></label>
             <div class="relative">
@@ -84,31 +82,30 @@
             </div>
           </div>
 
-          <!-- Concepto Obligatorio -->
           <div>
             <label class="block text-xs font-medium text-slate-400 mb-1">Concepto <span class="text-rose-500">*</span></label>
             <input type="text" id="input-concepto" required placeholder="Ej. Alquiler, Cena, Zapatillas..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
           </div>
 
-          <!-- Medio de Pago Obligatorio -->
+          <!-- Medio de Pago (Sin preselección) -->
           <div>
             <div class="flex justify-between items-center mb-1">
               <label class="text-xs font-medium text-slate-400">Medio de Pago <span class="text-rose-500">*</span></label>
               <button type="button" onclick="modalNuevoMedioPago(true)" class="text-[11px] text-blue-400 hover:underline">+ Configurar Medios</button>
             </div>
             <select id="select-tarjeta" required onchange="handleMedioPagoChange()" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="">Selecciona medio de pago...</option>
+              <option value="">Selecciona un medio de pago...</option>
             </select>
           </div>
 
-          <!-- Sección Cuotas (Aparece justo debajo del Medio de Pago solo si es TDC) -->
+          <!-- Cuotas TDC (Sin preselección inicial) -->
           <div id="seccion-cuotas" class="hidden bg-slate-900/70 p-3 rounded-xl border border-slate-800 space-y-2">
             <div class="flex justify-between items-center text-xs">
-              <span class="text-slate-400 font-medium">Opciones de Financiación (TDC)</span>
-              <span id="label-cuotas-seleccionadas" class="text-blue-400 font-bold">1 cuota</span>
+              <span class="text-slate-400 font-medium">Opciones de Financiación (TDC) <span class="text-rose-500">*</span></span>
+              <span id="label-cuotas-seleccionadas" class="text-slate-500 font-bold">Selecciona cuotas</span>
             </div>
             <div class="grid grid-cols-5 gap-1.5">
-              <button type="button" onclick="setCuotas(1)" class="btn-cuota py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold">1</button>
+              <button type="button" onclick="setCuotas(1)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">1</button>
               <button type="button" onclick="setCuotas(3)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">3</button>
               <button type="button" onclick="setCuotas(6)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">6</button>
               <button type="button" onclick="setCuotas(12)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">12</button>
@@ -120,12 +117,12 @@
             </div>
           </div>
 
-          <!-- Entidad de Destino -->
+          <!-- Entidad de Destino (Sin preselección inicial) -->
           <div>
             <label class="block text-xs font-medium text-slate-400 mb-1.5">¿De quién es el gasto? <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <label class="cursor-pointer">
-                <input type="radio" name="destino" value="prorrateo" checked onchange="handleDestinoChange('prorrateo')" class="peer sr-only">
+                <input type="radio" name="destino" value="prorrateo" onchange="handleDestinoChange('prorrateo')" class="peer sr-only">
                 <div class="p-2 rounded-xl border border-slate-800 bg-slate-900 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 text-center font-medium transition">
                   <i class="fa-solid fa-scale-balanced mb-1 block text-blue-400"></i>
                   Prorrateo (% Sueldos)
@@ -164,7 +161,7 @@
             </div>
           </div>
 
-          <!-- PANEL COMPARTIDO EDITABLE EXTENDIDO CON BOTÓN (+) -->
+          <!-- Panel Compartido Editable con (+) -->
           <div id="panel-editable" class="hidden bg-slate-900/90 border border-cyan-500/40 p-3.5 rounded-2xl space-y-3">
             <div class="flex justify-between items-center text-xs">
               <span class="font-semibold text-cyan-400">Distribución de Responsables</span>
@@ -173,7 +170,6 @@
               </button>
             </div>
 
-            <!-- Lista de Responsables Dinámica -->
             <div id="contenedor-participantes" class="space-y-2 text-xs">
               <div class="flex items-center space-x-2">
                 <span class="w-20 text-slate-300 font-medium">Leandro:</span>
@@ -186,7 +182,6 @@
               <div id="participantes-extras" class="space-y-2"></div>
             </div>
 
-            <!-- Indicador de Suma y Validación -->
             <div class="border-t border-slate-800 pt-2 flex justify-between items-center text-[11px]">
               <span id="label-suma-editable" class="text-slate-400">Total: $0 / Asignado: $0</span>
               <span id="tag-editable-estado" class="text-rose-400 font-bold">Descuadrado</span>
@@ -203,7 +198,6 @@
       <div id="tab-clearing" class="hidden space-y-4">
         <h2 class="text-base font-semibold text-white">Liquidación de Octubre</h2>
         
-        <!-- Tarjeta de Transferencia Neta -->
         <div class="bg-gradient-to-br from-slate-900 to-slate-850 p-4 rounded-2xl border border-slate-800 space-y-3">
           <div class="flex items-center justify-between text-xs text-slate-400">
             <span>Clearing de Pareja</span>
@@ -216,7 +210,6 @@
           </div>
         </div>
 
-        <!-- Cuentas Externas (Terceros / Negocio) -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Cuentas por Cobrar Externas</h3>
           <div id="lista-externos" class="space-y-2 text-xs">
@@ -224,26 +217,23 @@
           </div>
         </div>
 
-        <!-- Historial -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
           <div id="lista-gastos" class="space-y-2 text-xs"></div>
         </div>
       </div>
 
-      <!-- PESTAÑA 3: PARÁMETROS E INGRESOS (REDISEÑADO CON 2 COLUMNAS Y FORMULARIO INTEGRADO) -->
+      <!-- PESTAÑA 3: PARÁMETROS E INGRESOS -->
       <div id="tab-config" class="hidden space-y-4">
         <div class="flex justify-between items-center">
           <h2 class="text-base font-semibold text-white">Parámetros e Ingresos</h2>
           
-          <!-- Dólar Liquidación Compacto -->
           <div class="flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-800">
             <span class="text-[11px] text-slate-400 font-medium">TC ($):</span>
             <input type="number" id="cfg-tc" step="any" value="1580" oninput="actualizarTC(this.value)" class="no-spin w-16 bg-slate-950 border border-slate-800 rounded-lg px-1.5 py-0.5 text-xs text-emerald-400 font-bold focus:outline-none">
           </div>
         </div>
 
-        <!-- 2 Columnas de Ingresos (Leandro y María) -->
         <div class="grid grid-cols-2 gap-2.5 text-xs">
           <!-- Columna Leandro -->
           <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-2">
@@ -294,7 +284,6 @@
           </div>
         </div>
 
-        <!-- Botón Desplegable para Agregar Concepto Directo -->
         <div>
           <button type="button" onclick="toggleFormIngreso()" class="w-full bg-slate-900 hover:bg-slate-850 text-blue-400 border border-slate-800 font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center space-x-1.5">
             <i class="fa-solid fa-plus text-xs"></i>
@@ -302,7 +291,7 @@
           </button>
         </div>
 
-        <!-- Formulario Integrado (Sin Prompt ni Ventanas Emergentes) -->
+        <!-- Formulario Concepto de Ingreso (Sin preselección) -->
         <div id="form-nuevo-ingreso" class="hidden bg-slate-900/90 border border-blue-500/30 p-3.5 rounded-2xl space-y-3 text-xs">
           <span class="font-bold text-white block">Nuevo Concepto de Ingreso</span>
           
@@ -316,29 +305,29 @@
             <input type="number" step="any" id="ingreso-monto" placeholder="0.00" class="no-spin w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white font-bold focus:outline-none focus:border-blue-500">
           </div>
 
-          <!-- Usuario Selector (Botones) -->
+          <!-- Usuario Selector -->
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">Usuario del Ingreso <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="setIngresoUsuario('Leandro')" id="btn-user-lean" class="py-1.5 rounded-lg border border-blue-500 bg-blue-500/20 text-blue-300 font-semibold">Leandro</button>
+              <button type="button" onclick="setIngresoUsuario('Leandro')" id="btn-user-lean" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">Leandro</button>
               <button type="button" onclick="setIngresoUsuario('María')" id="btn-user-maria" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">María</button>
             </div>
           </div>
 
-          <!-- Moneda Selector (Botones) -->
+          <!-- Moneda Selector -->
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">Tipo de Moneda <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="setIngresoMoneda('ARS')" id="btn-mon-ars" class="py-1.5 rounded-lg border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-semibold">ARS ($)</button>
+              <button type="button" onclick="setIngresoMoneda('ARS')" id="btn-mon-ars" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">ARS ($)</button>
               <button type="button" onclick="setIngresoMoneda('USD')" id="btn-mon-usd" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">USD (U$D)</button>
             </div>
           </div>
 
-          <!-- Tipo Cálculo Selector (Botones) -->
+          <!-- Tipo Cálculo Selector -->
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">Tipo de Cálculo <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="setIngresoCalculo(true)" id="btn-calc-fijo" class="py-1.5 rounded-lg border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-semibold">Fijo (Prorrateo)</button>
+              <button type="button" onclick="setIngresoCalculo(true)" id="btn-calc-fijo" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">Fijo (Prorrateo)</button>
               <button type="button" onclick="setIngresoCalculo(false)" id="btn-calc-var" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">Variable (Extra)</button>
             </div>
           </div>
@@ -351,7 +340,7 @@
       </div>
     </main>
 
-    <!-- Modal para Medios de Pago (Corregido) -->
+    <!-- Modal para Medios de Pago (Sin preselección) -->
     <div id="modal-medios" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 w-full max-w-sm space-y-4">
         <div class="flex justify-between items-center">
@@ -361,19 +350,21 @@
         
         <form onsubmit="guardarNuevoMedioPago(event)" class="space-y-3 text-xs">
           <div>
-            <label class="block text-slate-400 mb-1">Nombre</label>
-            <input type="text" id="medio-nombre" required placeholder="Ej. Visa Santander, Efectivo..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none">
+            <label class="block text-slate-400 mb-1">Nombre <span class="text-rose-500">*</span></label>
+            <input type="text" id="medio-nombre" required placeholder="Ej. Visa BBVA, Efectivo..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none">
           </div>
           <div>
-            <label class="block text-slate-400 mb-1">Titular / Responsable</label>
+            <label class="block text-slate-400 mb-1">Titular / Responsable <span class="text-rose-500">*</span></label>
             <select id="medio-titular" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none">
+              <option value="">Selecciona titular...</option>
               <option value="Leandro">Leandro</option>
               <option value="María">María</option>
             </select>
           </div>
           <div>
-            <label class="block text-slate-400 mb-1">Categoría</label>
+            <label class="block text-slate-400 mb-1">Categoría <span class="text-rose-500">*</span></label>
             <select id="medio-tipo" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none">
+              <option value="">Selecciona una categoría...</option>
               <option value="TDC">TDC (Tarjeta de Crédito - Habilita Cuotas)</option>
               <option value="Efectivo/Sueldo">Efectivo / Sueldo</option>
               <option value="Billetera/Cuenta">Billetera / Cuenta Bancaria</option>
@@ -414,14 +405,14 @@
     let ratioLeandro = 0.5;
     let ratioMaria = 0.5;
     let tcActual = 1580;
-    let cuotasSeleccionadas = 1;
+    let cuotasSeleccionadas = null;
     let tarjetasData = [];
     let ingresosData = [];
 
-    // Estado del nuevo concepto de ingreso
-    let nuevoIngresoUser = 'Leandro';
-    let nuevoIngresoMoneda = 'ARS';
-    let nuevoIngresoEsFijo = true;
+    // Variables de selección de ingresos (inicialmente nulas)
+    let nuevoIngresoUser = null;
+    let nuevoIngresoMoneda = null;
+    let nuevoIngresoEsFijo = null;
 
     function showToast(msg) {
       const t = document.getElementById('toast');
@@ -430,7 +421,6 @@
       setTimeout(() => t.classList.add('hidden'), 2500);
     }
 
-    // Prevenir modificación de valores numéricos al hacer scroll con el mouse
     document.addEventListener('wheel', function(e) {
       if (document.activeElement.type === 'number') {
         document.activeElement.blur();
@@ -444,7 +434,6 @@
       await cargarGastos();
     }
 
-    // 1. CARGA Y SINCRONIZACIÓN DE TC Y SUELDOS DESGLOSADOS
     async function cargarConfigTC() {
       try {
         const { data } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', '2026-10').maybeSingle();
@@ -467,7 +456,8 @@
 
     async function cargarIngresos() {
       try {
-        const { data } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', '2026-10');
+        const { data, error } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', '2026-10');
+        if (error) console.error(error);
         ingresosData = data || [];
         renderIngresos();
         calcularRatiosAutomaticos();
@@ -514,12 +504,10 @@
       if (contLean.children.length === 0) contLean.innerHTML = '<div class="text-[11px] text-slate-500">Sin conceptos</div>';
       if (contMaria.children.length === 0) contMaria.innerHTML = '<div class="text-[11px] text-slate-500">Sin conceptos</div>';
 
-      // Totales Leandro
       document.getElementById('tot-fijo-lean').innerText = `$${Math.round(fijoLean).toLocaleString()}`;
       document.getElementById('tot-var-lean').innerText = `$${Math.round(varLean).toLocaleString()}`;
       document.getElementById('tot-total-lean').innerText = `$${Math.round(fijoLean + varLean).toLocaleString()}`;
 
-      // Totales María
       document.getElementById('tot-fijo-maria').innerText = `$${Math.round(fijoMaria).toLocaleString()}`;
       document.getElementById('tot-var-maria').innerText = `$${Math.round(varMaria).toLocaleString()}`;
       document.getElementById('tot-total-maria').innerText = `$${Math.round(fijoMaria + varMaria).toLocaleString()}`;
@@ -528,6 +516,22 @@
     function toggleFormIngreso() {
       const f = document.getElementById('form-nuevo-ingreso');
       f.classList.toggle('hidden');
+      resetFormIngreso();
+    }
+
+    function resetFormIngreso() {
+      nuevoIngresoUser = null;
+      nuevoIngresoMoneda = null;
+      nuevoIngresoEsFijo = null;
+      document.getElementById('ingreso-nombre').value = '';
+      document.getElementById('ingreso-monto').value = '';
+      
+      document.getElementById('btn-user-lean').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-user-maria').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-mon-ars').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-mon-usd').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-calc-fijo').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-calc-var').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
     }
 
     function setIngresoUsuario(u) {
@@ -554,6 +558,9 @@
 
       if (!concepto) return alert('Debes escribir un nombre para el concepto');
       if (isNaN(monto) || monto <= 0) return alert('Ingresa un monto válido mayor a 0');
+      if (!nuevoIngresoUser) return alert('Selecciona el usuario del ingreso (Leandro o María)');
+      if (!nuevoIngresoMoneda) return alert('Selecciona la moneda (ARS o USD)');
+      if (nuevoIngresoEsFijo === null) return alert('Selecciona el tipo de cálculo (Fijo o Variable)');
 
       const { error } = await sbClient.from('fuentes_ingreso').insert([{
         mes_imputacion: '2026-10',
@@ -568,8 +575,6 @@
         alert('Error al guardar ingreso: ' + error.message);
       } else {
         showToast('Ingreso agregado');
-        document.getElementById('ingreso-nombre').value = '';
-        document.getElementById('ingreso-monto').value = '';
         toggleFormIngreso();
         await cargarIngresos();
       }
@@ -586,7 +591,7 @@
       let totalMariaFijo = 0;
 
       ingresosData.filter(i => i.es_computable).forEach(i => {
-        const valorEnArs = i.moneda === 'USD' ? i.monto * tcActual : i.monto;
+        const valorEnArs = i.moneda === 'USD' ? (i.monto * tcActual) : i.monto;
         if (i.titular === 'Leandro') totalLeanFijo += valorEnArs;
         else totalMariaFijo += valorEnArs;
       });
@@ -604,7 +609,6 @@
       document.getElementById('ratio-maria').innerText = `${(ratioMaria * 100).toFixed(1)}%`;
     }
 
-    // 2. MEDIOS DE PAGO (CORREGIDO PARA CARGA Y VISUALIZACIÓN)
     async function cargarMediosPago() {
       const select = document.getElementById('select-tarjeta');
       const listModal = document.getElementById('lista-medios-modal');
@@ -621,7 +625,7 @@
       status.className = 'text-xs text-emerald-400';
       tarjetasData = data;
       
-      select.innerHTML = '<option value="">Selecciona medio de pago...</option>';
+      select.innerHTML = '<option value="">Selecciona un medio de pago...</option>';
       listModal.innerHTML = '';
 
       if (data.length === 0) {
@@ -647,17 +651,27 @@
 
     function modalNuevoMedioPago(show) {
       document.getElementById('modal-medios').classList.toggle('hidden', !show);
+      if (show) {
+        document.getElementById('medio-nombre').value = '';
+        document.getElementById('medio-titular').value = '';
+        document.getElementById('medio-tipo').value = '';
+      }
     }
 
     async function guardarNuevoMedioPago(e) {
       e.preventDefault();
       const btn = document.getElementById('btn-guardar-medio');
-      btn.disabled = true;
-      btn.innerText = 'Guardando...';
-
       const nombre = document.getElementById('medio-nombre').value.trim();
       const titular = document.getElementById('medio-titular').value;
       const tipo = document.getElementById('medio-tipo').value;
+
+      if (!nombre || !titular || !tipo) {
+        alert('Todos los campos son obligatorios');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Guardando...';
 
       const { error } = await sbClient.from('medios_pago').insert([{ nombre, titular, tipo }]);
       btn.disabled = false;
@@ -667,6 +681,8 @@
         alert('Error al crear medio de pago: ' + error.message);
       } else {
         document.getElementById('medio-nombre').value = '';
+        document.getElementById('medio-titular').value = '';
+        document.getElementById('medio-tipo').value = '';
         showToast('Medio de pago creado');
         await cargarMediosPago();
       }
@@ -678,7 +694,6 @@
       await cargarMediosPago();
     }
 
-    // 3. SECCIÓN CUOTAS CONDICIONAL
     function handleMedioPagoChange() {
       const id = document.getElementById('select-tarjeta').value;
       const secCuotas = document.getElementById('seccion-cuotas');
@@ -686,15 +701,28 @@
 
       if (medio && medio.tipo === 'TDC') {
         secCuotas.classList.remove('hidden');
+        resetCuotas();
       } else {
         secCuotas.classList.add('hidden');
-        setCuotas(1);
+        cuotasSeleccionadas = 1;
       }
+    }
+
+    function resetCuotas() {
+      cuotasSeleccionadas = null;
+      document.getElementById('label-cuotas-seleccionadas').innerText = 'Selecciona cuotas';
+      document.getElementById('label-cuotas-seleccionadas').className = 'text-slate-500 font-bold';
+      document.getElementById('input-cuotas-custom').value = '';
+      document.querySelectorAll('.btn-cuota').forEach(btn => {
+        btn.className = 'btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold';
+      });
     }
 
     function setCuotas(n) {
       cuotasSeleccionadas = parseInt(n);
+      document.getElementById('input-cuotas-custom').value = '';
       document.getElementById('label-cuotas-seleccionadas').innerText = `${cuotasSeleccionadas} cuota${cuotasSeleccionadas > 1 ? 's' : ''}`;
+      document.getElementById('label-cuotas-seleccionadas').className = 'text-blue-400 font-bold';
       document.querySelectorAll('.btn-cuota').forEach(btn => {
         if (parseInt(btn.innerText) === cuotasSeleccionadas) {
           btn.className = 'btn-cuota py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold';
@@ -706,10 +734,18 @@
 
     function setCuotasCustom(val) {
       const n = parseInt(val);
-      if (n > 0) setCuotas(n);
+      if (n > 0) {
+        cuotasSeleccionadas = n;
+        document.getElementById('label-cuotas-seleccionadas').innerText = `${cuotasSeleccionadas} cuota${cuotasSeleccionadas > 1 ? 's' : ''}`;
+        document.getElementById('label-cuotas-seleccionadas').className = 'text-blue-400 font-bold';
+        document.querySelectorAll('.btn-cuota').forEach(btn => {
+          btn.className = 'btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold';
+        });
+      } else {
+        resetCuotas();
+      }
     }
 
-    // 4. DESTINOS Y COMPARTIDO EDITABLE
     function handleDestinoChange(tipo) {
       const panelEditable = document.getElementById('panel-editable');
       if (tipo === 'editable') {
@@ -739,7 +775,7 @@
 
     function actualizarDistribuidores() {
       const total = parseFloat(document.getElementById('input-monto').value) || 0;
-      const isEditable = document.querySelector('input[name="destino"]:checked').value === 'editable';
+      const isEditable = document.querySelector('input[name="destino"]:checked')?.value === 'editable';
       if (!isEditable) return;
 
       const pLean = document.getElementById('part-leandro');
@@ -778,18 +814,24 @@
       return cuadra;
     }
 
-    // 5. GUARDAR GASTO CON VALIDACIÓN ESTRICTA
     async function guardarGasto(e) {
       e.preventDefault();
       const monto = parseFloat(document.getElementById('input-monto').value);
       const concepto = document.getElementById('input-concepto').value.trim();
       const medio_pago_id = document.getElementById('select-tarjeta').value;
-      const destino = document.querySelector('input[name="destino"]:checked').value;
+      const destinoRadio = document.querySelector('input[name="destino"]:checked');
 
       if (!monto || monto <= 0) return alert('El monto es obligatorio y debe ser mayor a 0');
       if (!concepto) return alert('El concepto es obligatorio');
       if (!medio_pago_id) return alert('Debes seleccionar un medio de pago');
+      if (!destinoRadio) return alert('Debes seleccionar ¿De quién es el gasto?');
 
+      const medio = tarjetasData.find(t => t.id === medio_pago_id);
+      if (medio && medio.tipo === 'TDC' && !cuotasSeleccionadas) {
+        return alert('Debes seleccionar la cantidad de cuotas para la TDC');
+      }
+
+      const destino = destinoRadio.value;
       let distribucion = [];
 
       if (destino === 'prorrateo') {
@@ -832,7 +874,7 @@
         monto_total: monto,
         medio_pago_id,
         tipo_destino: destino,
-        cuotas_totales: cuotasSeleccionadas,
+        cuotas_totales: cuotasSeleccionadas || 1,
         distribucion
       }]);
 
@@ -845,13 +887,13 @@
         showToast('¡Gasto registrado con éxito!');
         e.target.reset();
         document.getElementById('participantes-extras').innerHTML = '';
-        handleDestinoChange('prorrateo');
-        handleMedioPagoChange();
+        document.getElementById('panel-editable').classList.add('hidden');
+        document.getElementById('seccion-cuotas').classList.add('hidden');
+        cuotasSeleccionadas = null;
         await cargarGastos();
       }
     }
 
-    // 6. HISTORIAL Y CLEARING
     async function cargarGastos() {
       const lista = document.getElementById('lista-gastos');
       const listaExt = document.getElementById('lista-externos');
