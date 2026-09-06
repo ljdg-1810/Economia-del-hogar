@@ -69,11 +69,14 @@
       <!-- PESTAÑA 1: ANOTAR GASTO -->
       <div id="tab-cargar" class="space-y-4">
         <div class="flex justify-between items-center">
-          <h2 class="text-base font-semibold text-white">Anotar Nuevo Gasto</h2>
+          <h2 id="titulo-form-gasto" class="text-base font-semibold text-white">Anotar Nuevo Gasto</h2>
           <span id="db-status" class="text-xs text-amber-400">Conectando...</span>
         </div>
 
         <form id="form-gasto" onsubmit="guardarGasto(event)" class="space-y-3.5">
+          <input type="hidden" id="gasto-edit-id" value="">
+
+          <!-- Monto Obligatorio -->
           <div>
             <label class="block text-xs font-medium text-slate-400 mb-1">Monto Total (ARS) <span class="text-rose-500">*</span></label>
             <div class="relative">
@@ -82,12 +85,13 @@
             </div>
           </div>
 
+          <!-- Concepto Obligatorio -->
           <div>
             <label class="block text-xs font-medium text-slate-400 mb-1">Concepto <span class="text-rose-500">*</span></label>
-            <input type="text" id="input-concepto" required placeholder="Ej. Alquiler, Cena, Zapatillas..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="input-concepto" required placeholder="Ej. Alquiler, Luz, Cena, Zapatillas..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
           </div>
 
-          <!-- Medio de Pago (Sin preselección) -->
+          <!-- Medio de Pago -->
           <div>
             <div class="flex justify-between items-center mb-1">
               <label class="text-xs font-medium text-slate-400">Medio de Pago <span class="text-rose-500">*</span></label>
@@ -98,10 +102,10 @@
             </select>
           </div>
 
-          <!-- Cuotas TDC (Sin preselección inicial) -->
+          <!-- Sección Cuotas (Solo visible en TDC) -->
           <div id="seccion-cuotas" class="hidden bg-slate-900/70 p-3 rounded-xl border border-slate-800 space-y-2">
             <div class="flex justify-between items-center text-xs">
-              <span class="text-slate-400 font-medium">Opciones de Financiación (TDC) <span class="text-rose-500">*</span></span>
+              <span class="text-slate-400 font-medium">Financiación TDC (Monto / Cuotas) <span class="text-rose-500">*</span></span>
               <span id="label-cuotas-seleccionadas" class="text-slate-500 font-bold">Selecciona cuotas</span>
             </div>
             <div class="grid grid-cols-5 gap-1.5">
@@ -115,9 +119,10 @@
               <span class="text-[11px] text-slate-400">Otro:</span>
               <input type="number" id="input-cuotas-custom" min="1" max="60" placeholder="Editar cuotas" oninput="setCuotasCustom(this.value)" class="no-spin w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500">
             </div>
+            <div id="cuota-resumen-proyeccion" class="text-[11px] text-emerald-400 font-medium pt-1 hidden"></div>
           </div>
 
-          <!-- Entidad de Destino (Sin preselección inicial) -->
+          <!-- Entidad de Destino -->
           <div>
             <label class="block text-xs font-medium text-slate-400 mb-1.5">¿De quién es el gasto? <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2 text-xs">
@@ -188,38 +193,86 @@
             </div>
           </div>
 
-          <button type="submit" id="btn-submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-blue-600/20 active:scale-[0.99]">
-            Guardar Gasto
-          </button>
+          <!-- Tipo de Gasto: Fijo o Variable (Desaparece si es TDC) -->
+          <div id="seccion-tipo-gasto">
+            <label class="block text-xs font-medium text-slate-400 mb-1">Tipo de Gasto <span class="text-rose-500">*</span></label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="setTipoGastoFijo(true)" id="btn-gasto-fijo" class="py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-xs font-semibold">
+                <i class="fa-solid fa-repeat mr-1"></i> Fijo (Mensual recurrente)
+              </button>
+              <button type="button" onclick="setTipoGastoFijo(false)" id="btn-gasto-var" class="py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-xs font-semibold">
+                <i class="fa-solid fa-calendar-day mr-1"></i> Variable (Solo este mes)
+              </button>
+            </div>
+          </div>
+
+          <div class="pt-1 flex space-x-2">
+            <button type="button" id="btn-cancelar-edit" onclick="cancelarEdicionGasto()" class="w-1/3 py-3 bg-slate-800 text-slate-400 font-semibold rounded-xl transition hidden">Cancelar</button>
+            <button type="submit" id="btn-submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-blue-600/20 active:scale-[0.99]">
+              Guardar Gasto
+            </button>
+          </div>
         </form>
       </div>
 
-      <!-- PESTAÑA 2: LIQUIDACIÓN -->
+      <!-- PESTAÑA 2: LIQUIDACIÓN (CLEARING Y HISTORIAL DESPLEGABLE) -->
       <div id="tab-clearing" class="hidden space-y-4">
-        <h2 class="text-base font-semibold text-white">Liquidación de Octubre</h2>
-        
-        <div class="bg-gradient-to-br from-slate-900 to-slate-850 p-4 rounded-2xl border border-slate-800 space-y-3">
-          <div class="flex items-center justify-between text-xs text-slate-400">
-            <span>Clearing de Pareja</span>
-            <span class="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-md font-medium">Balance</span>
+        <div class="flex justify-between items-center">
+          <h2 class="text-base font-semibold text-white">Liquidación de Octubre</h2>
+          <button onclick="abrirModalTotalPagos()" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition shadow-sm">
+            <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Total de Pagos
+          </button>
+        </div>
+
+        <!-- 2 Columnas de Clearing Separado -->
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <!-- Columna Leandro a María -->
+          <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div>
+              <span class="font-bold text-blue-400 block mb-1">Leandro paga a María</span>
+              <p class="text-[10px] text-slate-400 leading-tight">Gastos asumidos por Leandro en cuentas de María.</p>
+            </div>
+            <div class="border-t border-slate-800 pt-2 mt-2">
+              <span class="text-[10px] text-slate-400 block">Subtotal debido:</span>
+              <span id="clearing-col-lean" class="text-sm font-bold text-white">$0</span>
+            </div>
           </div>
-          <div class="py-1">
-            <span class="text-xs text-slate-400 block">Transferencia requerida:</span>
-            <div id="clearing-titulo" class="text-base font-bold text-white mt-0.5">Calculando...</div>
-            <div id="clearing-monto" class="text-2xl font-black text-emerald-400 mt-1">$0 <span class="text-xs font-normal text-slate-400">ARS</span></div>
+
+          <!-- Columna María a Leandro -->
+          <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
+            <div>
+              <span class="font-bold text-rose-400 block mb-1">María paga a Leandro</span>
+              <p class="text-[10px] text-slate-400 leading-tight">Gastos asumidos por María en cuentas de Leandro.</p>
+            </div>
+            <div class="border-t border-slate-800 pt-2 mt-2">
+              <span class="text-[10px] text-slate-400 block">Subtotal debido:</span>
+              <span id="clearing-col-maria" class="text-sm font-bold text-white">$0</span>
+            </div>
           </div>
         </div>
 
-        <div class="space-y-2">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Cuentas por Cobrar Externas</h3>
-          <div id="lista-externos" class="space-y-2 text-xs">
-            <div class="text-slate-500 text-center py-2">Sin externos pendientes.</div>
-          </div>
-        </div>
-
+        <!-- Historial en 2 Columnas: Gastos Fijos y Gastos Variables -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
-          <div id="lista-gastos" class="space-y-2 text-xs"></div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <!-- Fijos -->
+            <div class="space-y-1.5">
+              <div class="bg-slate-900/60 px-2 py-1 rounded-lg border border-slate-800 text-[11px] font-bold text-cyan-400 flex items-center justify-between">
+                <span>Fijos (Recurrentes)</span>
+                <span id="count-fijos" class="text-[10px] text-slate-500">0</span>
+              </div>
+              <div id="lista-gastos-fijos" class="space-y-1.5"></div>
+            </div>
+
+            <!-- Variables -->
+            <div class="space-y-1.5">
+              <div class="bg-slate-900/60 px-2 py-1 rounded-lg border border-slate-800 text-[11px] font-bold text-amber-400 flex items-center justify-between">
+                <span>Variables / Cuotas</span>
+                <span id="count-vars" class="text-[10px] text-slate-500">0</span>
+              </div>
+              <div id="lista-gastos-vars" class="space-y-1.5"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -291,9 +344,12 @@
           </button>
         </div>
 
-        <!-- Formulario Concepto de Ingreso (Sin preselección) -->
+        <!-- Formulario Concepto de Ingreso (Sin preselección inicial) -->
         <div id="form-nuevo-ingreso" class="hidden bg-slate-900/90 border border-blue-500/30 p-3.5 rounded-2xl space-y-3 text-xs">
-          <span class="font-bold text-white block">Nuevo Concepto de Ingreso</span>
+          <div class="flex justify-between items-center">
+            <span id="titulo-form-ingreso" class="font-bold text-white">Nuevo Concepto de Ingreso</span>
+            <input type="hidden" id="ingreso-edit-id" value="">
+          </div>
           
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">Nombre / Concepto <span class="text-rose-500">*</span></label>
@@ -305,7 +361,6 @@
             <input type="number" step="any" id="ingreso-monto" placeholder="0.00" class="no-spin w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white font-bold focus:outline-none focus:border-blue-500">
           </div>
 
-          <!-- Usuario Selector -->
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">Usuario del Ingreso <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
@@ -314,7 +369,6 @@
             </div>
           </div>
 
-          <!-- Moneda Selector -->
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">Tipo de Moneda <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
@@ -323,7 +377,6 @@
             </div>
           </div>
 
-          <!-- Tipo Cálculo Selector -->
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">Tipo de Cálculo <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
@@ -340,7 +393,39 @@
       </div>
     </main>
 
-    <!-- Modal para Medios de Pago (Sin preselección) -->
+    <!-- MODAL "TOTAL DE PAGOS" -->
+    <div id="modal-total-pagos" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-sm space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Resumen Oficial</span>
+            <h3 class="text-base font-bold text-white">Total de Pagos y Cobros</h3>
+          </div>
+          <button onclick="modalTotalPagos(false)" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Transferencia Pareja Neta -->
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+          <span class="text-xs text-slate-400 block font-medium">Liquidación Neta de Pareja:</span>
+          <div id="modal-clearing-texto" class="text-sm font-bold text-white">Calculando...</div>
+          <div id="modal-clearing-monto" class="text-2xl font-black text-emerald-400">$0 <span class="text-xs font-normal text-slate-400">ARS</span></div>
+        </div>
+
+        <!-- Cuentas por Cobrar a Terceros / Negocio -->
+        <div class="space-y-2">
+          <span class="text-xs font-bold text-slate-300 block">Montos a Cobrar (Terceros / Negocio):</span>
+          <div id="modal-lista-externos" class="max-h-48 overflow-y-auto hide-scrollbar space-y-1.5 text-xs">
+            <div class="text-slate-500 text-center py-2">Sin externos pendientes.</div>
+          </div>
+        </div>
+
+        <button onclick="modalTotalPagos(false)" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 rounded-xl transition text-xs">
+          Entendido
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal para Medios de Pago -->
     <div id="modal-medios" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 w-full max-w-sm space-y-4">
         <div class="flex justify-between items-center">
@@ -405,11 +490,13 @@
     let ratioLeandro = 0.5;
     let ratioMaria = 0.5;
     let tcActual = 1580;
-    let cuotasSeleccionadas = null;
+    let cuotasSeleccionadas = 1;
+    let tipoGastoEsFijo = null;
     let tarjetasData = [];
     let ingresosData = [];
+    let gastosCache = [];
 
-    // Variables de selección de ingresos (inicialmente nulas)
+    // Estado del concepto de ingreso
     let nuevoIngresoUser = null;
     let nuevoIngresoMoneda = null;
     let nuevoIngresoEsFijo = null;
@@ -434,6 +521,7 @@
       await cargarGastos();
     }
 
+    // 1. CONFIGURACIÓN Y TC
     async function cargarConfigTC() {
       try {
         const { data } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', '2026-10').maybeSingle();
@@ -454,10 +542,10 @@
       calcularRatiosAutomaticos();
     }
 
+    // 2. INGRESOS: LISTAR, EDITAR Y ELIMINAR
     async function cargarIngresos() {
       try {
-        const { data, error } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', '2026-10');
-        if (error) console.error(error);
+        const { data } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', '2026-10');
         ingresosData = data || [];
         renderIngresos();
         calcularRatiosAutomaticos();
@@ -493,6 +581,7 @@
           </div>
           <div class="flex items-center space-x-1 shrink-0">
             <span class="text-[11px] font-bold text-slate-200">$${Math.round(montoARS).toLocaleString()}</span>
+            <button onclick="editarIngreso('${item.id}')" class="text-blue-400 hover:text-blue-300 p-0.5"><i class="fa-solid fa-pen text-[10px]"></i></button>
             <button onclick="eliminarIngreso('${item.id}')" class="text-rose-400 hover:text-rose-300 p-0.5"><i class="fa-solid fa-trash text-[10px]"></i></button>
           </div>
         `;
@@ -513,18 +602,25 @@
       document.getElementById('tot-total-maria').innerText = `$${Math.round(fijoMaria + varMaria).toLocaleString()}`;
     }
 
-    function toggleFormIngreso() {
+    function toggleFormIngreso(abrir = null) {
       const f = document.getElementById('form-nuevo-ingreso');
-      f.classList.toggle('hidden');
-      resetFormIngreso();
+      if (abrir === null) f.classList.toggle('hidden');
+      else if (abrir) f.classList.remove('hidden');
+      else f.classList.add('hidden');
+
+      if (!f.classList.contains('hidden') && !document.getElementById('ingreso-edit-id').value) {
+        resetFormIngreso();
+      }
     }
 
     function resetFormIngreso() {
+      document.getElementById('ingreso-edit-id').value = '';
+      document.getElementById('titulo-form-ingreso').innerText = 'Nuevo Concepto de Ingreso';
+      document.getElementById('ingreso-nombre').value = '';
+      document.getElementById('ingreso-monto').value = '';
       nuevoIngresoUser = null;
       nuevoIngresoMoneda = null;
       nuevoIngresoEsFijo = null;
-      document.getElementById('ingreso-nombre').value = '';
-      document.getElementById('ingreso-monto').value = '';
       
       document.getElementById('btn-user-lean').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
       document.getElementById('btn-user-maria').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
@@ -552,36 +648,67 @@
       document.getElementById('btn-calc-var').className = !esFijo ? 'py-1.5 rounded-lg border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-semibold' : 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
     }
 
+    function editarIngreso(id) {
+      const item = ingresosData.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('ingreso-edit-id').value = item.id;
+      document.getElementById('titulo-form-ingreso').innerText = 'Editar Concepto de Ingreso';
+      document.getElementById('ingreso-nombre').value = item.concepto;
+      document.getElementById('ingreso-monto').value = item.monto;
+
+      setIngresoUsuario(item.titular);
+      setIngresoMoneda(item.moneda);
+      setIngresoCalculo(item.es_computable);
+
+      toggleFormIngreso(true);
+    }
+
     async function guardarNuevoIngresoDirecto() {
+      const editId = document.getElementById('ingreso-edit-id').value;
       const concepto = document.getElementById('ingreso-nombre').value.trim();
       const monto = parseFloat(document.getElementById('ingreso-monto').value);
 
-      if (!concepto) return alert('Debes escribir un nombre para el concepto');
-      if (isNaN(monto) || monto <= 0) return alert('Ingresa un monto válido mayor a 0');
-      if (!nuevoIngresoUser) return alert('Selecciona el usuario del ingreso (Leandro o María)');
+      if (!concepto) return alert('Escribe el concepto de ingreso');
+      if (isNaN(monto) || monto <= 0) return alert('Ingresa un monto válido');
+      if (!nuevoIngresoUser) return alert('Selecciona el usuario (Leandro o María)');
       if (!nuevoIngresoMoneda) return alert('Selecciona la moneda (ARS o USD)');
-      if (nuevoIngresoEsFijo === null) return alert('Selecciona el tipo de cálculo (Fijo o Variable)');
+      if (nuevoIngresoEsFijo === null) return alert('Selecciona si es Fijo o Variable');
 
-      const { error } = await sbClient.from('fuentes_ingreso').insert([{
-        mes_imputacion: '2026-10',
-        titular: nuevoIngresoUser,
-        concepto,
-        monto,
-        moneda: nuevoIngresoMoneda,
-        es_computable: nuevoIngresoEsFijo
-      }]);
+      let error = null;
+      if (editId) {
+        const res = await sbClient.from('fuentes_ingreso').update({
+          titular: nuevoIngresoUser,
+          concepto,
+          monto,
+          moneda: nuevoIngresoMoneda,
+          es_computable: nuevoIngresoEsFijo
+        }).eq('id', editId);
+        error = res.error;
+      } else {
+        const res = await sbClient.from('fuentes_ingreso').insert([{
+          mes_imputacion: '2026-10',
+          titular: nuevoIngresoUser,
+          concepto,
+          monto,
+          moneda: nuevoIngresoMoneda,
+          es_computable: nuevoIngresoEsFijo
+        }]);
+        error = res.error;
+      }
 
       if (error) {
         alert('Error al guardar ingreso: ' + error.message);
       } else {
-        showToast('Ingreso agregado');
-        toggleFormIngreso();
+        showToast(editId ? 'Ingreso actualizado' : 'Ingreso agregado');
+        resetFormIngreso();
+        toggleFormIngreso(false);
         await cargarIngresos();
       }
     }
 
     async function eliminarIngreso(id) {
-      if (!confirm('¿Eliminar este ingreso?')) return;
+      if (!confirm('¿Eliminar este concepto?')) return;
       await sbClient.from('fuentes_ingreso').delete().eq('id', id);
       await cargarIngresos();
     }
@@ -591,7 +718,7 @@
       let totalMariaFijo = 0;
 
       ingresosData.filter(i => i.es_computable).forEach(i => {
-        const valorEnArs = i.moneda === 'USD' ? (i.monto * tcActual) : i.monto;
+        const valorEnArs = i.moneda === 'USD' ? i.monto * tcActual : i.monto;
         if (i.titular === 'Leandro') totalLeanFijo += valorEnArs;
         else totalMariaFijo += valorEnArs;
       });
@@ -609,6 +736,7 @@
       document.getElementById('ratio-maria').innerText = `${(ratioMaria * 100).toFixed(1)}%`;
     }
 
+    // 3. MEDIOS DE PAGO
     async function cargarMediosPago() {
       const select = document.getElementById('select-tarjeta');
       const listModal = document.getElementById('lista-medios-modal');
@@ -651,11 +779,6 @@
 
     function modalNuevoMedioPago(show) {
       document.getElementById('modal-medios').classList.toggle('hidden', !show);
-      if (show) {
-        document.getElementById('medio-nombre').value = '';
-        document.getElementById('medio-titular').value = '';
-        document.getElementById('medio-tipo').value = '';
-      }
     }
 
     async function guardarNuevoMedioPago(e) {
@@ -665,10 +788,7 @@
       const titular = document.getElementById('medio-titular').value;
       const tipo = document.getElementById('medio-tipo').value;
 
-      if (!nombre || !titular || !tipo) {
-        alert('Todos los campos son obligatorios');
-        return;
-      }
+      if (!nombre || !titular || !tipo) return alert('Completa todos los campos');
 
       btn.disabled = true;
       btn.innerText = 'Guardando...';
@@ -678,7 +798,7 @@
       btn.innerText = 'Crear Medio de Pago';
 
       if (error) {
-        alert('Error al crear medio de pago: ' + error.message);
+        alert('Error: ' + error.message);
       } else {
         document.getElementById('medio-nombre').value = '';
         document.getElementById('medio-titular').value = '';
@@ -694,18 +814,38 @@
       await cargarMediosPago();
     }
 
+    // 4. LÓGICA DE GASTOS: TDC, CUOTAS Y TIPO (FIJO/VARIABLE)
     function handleMedioPagoChange() {
       const id = document.getElementById('select-tarjeta').value;
       const secCuotas = document.getElementById('seccion-cuotas');
+      const secTipoGasto = document.getElementById('seccion-tipo-gasto');
       const medio = tarjetasData.find(t => t.id === id);
 
       if (medio && medio.tipo === 'TDC') {
         secCuotas.classList.remove('hidden');
+        secTipoGasto.classList.add('hidden'); // Ocultar fijo/variable si es TDC
+        tipoGastoEsFijo = false; // TDC cuenta como variable/cuota
         resetCuotas();
       } else {
+        secCuotas.classList.remove('hidden');
         secCuotas.classList.add('hidden');
+        secTipoGasto.classList.remove('hidden');
         cuotasSeleccionadas = 1;
+        resetTipoGasto();
       }
+      actualizarProyeccionCuotas();
+    }
+
+    function resetTipoGasto() {
+      tipoGastoEsFijo = null;
+      document.getElementById('btn-gasto-fijo').className = 'py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-xs font-semibold';
+      document.getElementById('btn-gasto-var').className = 'py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-xs font-semibold';
+    }
+
+    function setTipoGastoFijo(esFijo) {
+      tipoGastoEsFijo = esFijo;
+      document.getElementById('btn-gasto-fijo').className = esFijo ? 'py-2 rounded-xl border border-cyan-500 bg-cyan-500/20 text-cyan-300 text-xs font-semibold' : 'py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-xs font-semibold';
+      document.getElementById('btn-gasto-var').className = !esFijo ? 'py-2 rounded-xl border border-amber-500 bg-amber-500/20 text-amber-300 text-xs font-semibold' : 'py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 text-xs font-semibold';
     }
 
     function resetCuotas() {
@@ -716,6 +856,7 @@
       document.querySelectorAll('.btn-cuota').forEach(btn => {
         btn.className = 'btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold';
       });
+      document.getElementById('cuota-resumen-proyeccion').classList.add('hidden');
     }
 
     function setCuotas(n) {
@@ -730,6 +871,7 @@
           btn.className = 'btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold';
         }
       });
+      actualizarProyeccionCuotas();
     }
 
     function setCuotasCustom(val) {
@@ -741,11 +883,33 @@
         document.querySelectorAll('.btn-cuota').forEach(btn => {
           btn.className = 'btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold';
         });
+        actualizarProyeccionCuotas();
       } else {
         resetCuotas();
       }
     }
 
+    function actualizarProyeccionCuotas() {
+      const total = parseFloat(document.getElementById('input-monto').value) || 0;
+      const box = document.getElementById('cuota-resumen-proyeccion');
+      if (cuotasSeleccionadas && cuotasSeleccionadas > 1 && total > 0) {
+        const valorCuota = total / cuotasSeleccionadas;
+        
+        // Calcular mes fin (base Octubre 2026 = mes 9 index)
+        const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const d = new Date(2026, 9, 1); // Oct 2026
+        d.setMonth(d.getMonth() + cuotasSeleccionadas - 1);
+        const finTexto = `${meses[d.getMonth()]} ${d.getFullYear()}`;
+
+        box.innerHTML = `<i class="fa-solid fa-clock-rotate-left mr-1"></i> $${Math.round(valorCuota).toLocaleString()}/mes (1/${cuotasSeleccionadas}) • Finaliza en: ${finTexto}`;
+        box.classList.remove('hidden');
+      } else {
+        box.classList.add('hidden');
+      }
+      actualizarDistribuidores();
+    }
+
+    // 5. DESTINOS Y COMPARTIDO EDITABLE
     function handleDestinoChange(tipo) {
       const panelEditable = document.getElementById('panel-editable');
       if (tipo === 'editable') {
@@ -756,8 +920,8 @@
       }
     }
 
-    function agregarParticipanteExtra() {
-      const nombre = prompt('Nombre del responsable (ej. Tercero: Sebas, Emprendimiento Logística):');
+    function agregarParticipanteExtra(nombrePre = '', montoPre = '') {
+      const nombre = nombrePre || prompt('Nombre del responsable (ej. Tercero: Sebas, Emprendimiento Logística):');
       if (!nombre) return;
       
       const cont = document.getElementById('participantes-extras');
@@ -766,7 +930,7 @@
       div.dataset.nombre = nombre;
       div.innerHTML = `
         <span class="w-20 text-amber-400 font-medium truncate">${nombre}:</span>
-        <input type="number" step="any" oninput="validarSumaEditable()" placeholder="0" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-amber-400 font-bold focus:outline-none focus:border-cyan-500">
+        <input type="number" step="any" value="${montoPre}" oninput="validarSumaEditable()" placeholder="0" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-amber-400 font-bold focus:outline-none focus:border-cyan-500">
         <button type="button" onclick="this.parentElement.remove(); validarSumaEditable();" class="text-rose-400 p-1"><i class="fa-solid fa-xmark"></i></button>
       `;
       cont.appendChild(div);
@@ -803,7 +967,7 @@
       const tag = document.getElementById('tag-editable-estado');
       label.innerText = `Total: $${total.toLocaleString()} / Asignado: $${suma.toLocaleString()}`;
 
-      const cuadra = Math.abs(total - suma) < 0.05 && total > 0;
+      const cuadra = Math.abs(total - suma) < 0.1 && total > 0;
       if (cuadra) {
         tag.innerText = 'Cuadrado';
         tag.className = 'text-emerald-400 font-bold';
@@ -814,52 +978,65 @@
       return cuadra;
     }
 
+    // 6. GUARDAR O EDITAR GASTO
     async function guardarGasto(e) {
       e.preventDefault();
-      const monto = parseFloat(document.getElementById('input-monto').value);
+      const editId = document.getElementById('gasto-edit-id').value;
+      const montoTotal = parseFloat(document.getElementById('input-monto').value);
       const concepto = document.getElementById('input-concepto').value.trim();
       const medio_pago_id = document.getElementById('select-tarjeta').value;
       const destinoRadio = document.querySelector('input[name="destino"]:checked');
 
-      if (!monto || monto <= 0) return alert('El monto es obligatorio y debe ser mayor a 0');
+      if (!montoTotal || montoTotal <= 0) return alert('Ingresa un monto válido mayor a 0');
       if (!concepto) return alert('El concepto es obligatorio');
       if (!medio_pago_id) return alert('Debes seleccionar un medio de pago');
-      if (!destinoRadio) return alert('Debes seleccionar ¿De quién es el gasto?');
+      if (!destinoRadio) return alert('Selecciona de quién es el gasto');
 
       const medio = tarjetasData.find(t => t.id === medio_pago_id);
-      if (medio && medio.tipo === 'TDC' && !cuotasSeleccionadas) {
-        return alert('Debes seleccionar la cantidad de cuotas para la TDC');
+      const esTDC = medio && medio.tipo === 'TDC';
+
+      if (esTDC && !cuotasSeleccionadas) {
+        return alert('Selecciona la cantidad de cuotas para la TDC');
       }
+      if (!esTDC && tipoGastoEsFijo === null) {
+        return alert('Selecciona si el gasto es Fijo o Variable');
+      }
+
+      const cuotas = esTDC ? cuotasSeleccionadas : 1;
+      const montoMes = montoTotal / cuotas; // Dividir entre cuotas
+      const esFijo = esTDC ? false : tipoGastoEsFijo;
 
       const destino = destinoRadio.value;
       let distribucion = [];
 
+      // La distribución se guarda con el monto mensual proporcional
       if (destino === 'prorrateo') {
         distribucion = [
-          { responsable: 'Leandro', monto: monto * ratioLeandro },
-          { responsable: 'María', monto: monto * ratioMaria }
+          { responsable: 'Leandro', monto: montoMes * ratioLeandro },
+          { responsable: 'María', monto: montoMes * ratioMaria }
         ];
       } else if (destino === 'mitad') {
         distribucion = [
-          { responsable: 'Leandro', monto: monto / 2 },
-          { responsable: 'María', monto: monto / 2 }
+          { responsable: 'Leandro', monto: montoMes / 2 },
+          { responsable: 'María', monto: montoMes / 2 }
         ];
       } else if (destino === 'leandro') {
-        distribucion = [{ responsable: 'Leandro', monto: monto }];
+        distribucion = [{ responsable: 'Leandro', monto: montoMes }];
       } else if (destino === 'maria') {
-        distribucion = [{ responsable: 'María', monto: monto }];
+        distribucion = [{ responsable: 'María', monto: montoMes }];
       } else if (destino === 'editable') {
         if (!validarSumaEditable()) {
-          alert('Error: La suma de la distribución manual NO coincide exactamente con el monto total.');
+          alert('Error: La suma asignada no coincide con el total.');
           return;
         }
-        const vLean = parseFloat(document.getElementById('part-leandro').value) || 0;
-        const vMaria = parseFloat(document.getElementById('part-maria').value) || 0;
+        const factor = 1 / cuotas;
+        const vLean = (parseFloat(document.getElementById('part-leandro').value) || 0) * factor;
+        const vMaria = (parseFloat(document.getElementById('part-maria').value) || 0) * factor;
         if (vLean > 0) distribucion.push({ responsable: 'Leandro', monto: vLean });
         if (vMaria > 0) distribucion.push({ responsable: 'María', monto: vMaria });
 
         document.querySelectorAll('.participante-extra-item').forEach(item => {
-          const m = parseFloat(item.querySelector('input').value) || 0;
+          const m = (parseFloat(item.querySelector('input').value) || 0) * factor;
           if (m > 0) distribucion.push({ responsable: item.dataset.nombre, monto: m });
         });
       }
@@ -868,15 +1045,26 @@
       btn.disabled = true;
       btn.innerText = 'Guardando...';
 
-      const { error } = await sbClient.from('gastos').insert([{
+      let error = null;
+      const payload = {
         mes_imputacion: '2026-10',
         concepto,
-        monto_total: monto,
+        monto_total: montoTotal,
+        monto_cuota: montoMes,
         medio_pago_id,
         tipo_destino: destino,
-        cuotas_totales: cuotasSeleccionadas || 1,
+        cuotas_totales: cuotas,
+        es_fijo: esFijo,
         distribucion
-      }]);
+      };
+
+      if (editId) {
+        const res = await sbClient.from('gastos').update(payload).eq('id', editId);
+        error = res.error;
+      } else {
+        const res = await sbClient.from('gastos').insert([payload]);
+        error = res.error;
+      }
 
       btn.disabled = false;
       btn.innerText = 'Guardar Gasto';
@@ -884,20 +1072,71 @@
       if (error) {
         alert('Error: ' + error.message);
       } else {
-        showToast('¡Gasto registrado con éxito!');
-        e.target.reset();
-        document.getElementById('participantes-extras').innerHTML = '';
-        document.getElementById('panel-editable').classList.add('hidden');
-        document.getElementById('seccion-cuotas').classList.add('hidden');
-        cuotasSeleccionadas = null;
+        showToast(editId ? 'Gasto actualizado' : '¡Gasto guardado con éxito!');
+        cancelarEdicionGasto();
         await cargarGastos();
+        switchTab('clearing');
       }
     }
 
+    function editarGasto(id) {
+      const g = gastosCache.find(x => x.id === id);
+      if (!g) return;
+
+      document.getElementById('gasto-edit-id').value = g.id;
+      document.getElementById('titulo-form-gasto').innerText = 'Editar Gasto';
+      document.getElementById('input-monto').value = g.monto_total;
+      document.getElementById('input-concepto').value = g.concepto;
+      document.getElementById('select-tarjeta').value = g.medio_pago_id;
+      document.getElementById('btn-cancelar-edit').classList.remove('hidden');
+
+      handleMedioPagoChange();
+
+      if (g.cuotas_totales > 1) {
+        setCuotas(g.cuotas_totales);
+      } else {
+        setTipoGastoFijo(g.es_fijo);
+      }
+
+      // Marcar radio destino
+      const radio = document.querySelector(`input[name="destino"][value="${g.tipo_destino}"]`);
+      if (radio) radio.checked = true;
+      handleDestinoChange(g.tipo_destino);
+
+      if (g.tipo_destino === 'editable') {
+        const pExtras = document.getElementById('participantes-extras');
+        pExtras.innerHTML = '';
+        (g.distribucion || []).forEach(d => {
+          const mOriginal = d.monto * (g.cuotas_totales || 1);
+          if (d.responsable === 'Leandro') {
+            document.getElementById('part-leandro').value = mOriginal;
+          } else if (d.responsable === 'María') {
+            document.getElementById('part-maria').value = mOriginal;
+          } else {
+            agregarParticipanteExtra(d.responsable, mOriginal);
+          }
+        });
+        validarSumaEditable();
+      }
+
+      switchTab('cargar');
+    }
+
+    function cancelarEdicionGasto() {
+      document.getElementById('form-gasto').reset();
+      document.getElementById('gasto-edit-id').value = '';
+      document.getElementById('titulo-form-gasto').innerText = 'Anotar Nuevo Gasto';
+      document.getElementById('btn-cancelar-edit').classList.add('hidden');
+      document.getElementById('participantes-extras').innerHTML = '';
+      document.getElementById('panel-editable').classList.add('hidden');
+      document.getElementById('seccion-cuotas').classList.add('hidden');
+      document.getElementById('seccion-tipo-gasto').classList.remove('hidden');
+      cuotasSeleccionadas = 1;
+      resetTipoGasto();
+    }
+
+    // 7. CARGA DE LIQUIDACIÓN Y HISTORIAL DESPLEGABLE
     async function cargarGastos() {
-      const lista = document.getElementById('lista-gastos');
-      const listaExt = document.getElementById('lista-externos');
-      
       const { data, error } = await sbClient
         .from('gastos')
         .select('*, medios_pago(nombre, titular, tipo)')
@@ -905,72 +1144,168 @@
         .order('created_at', { ascending: false });
 
       if (error || !data) return;
+      gastosCache = data;
 
       let debeLeanAMaria = 0;
       let debeMariaALean = 0;
-      let externos = [];
+      let externosMap = {};
 
-      lista.innerHTML = '';
+      const contFijos = document.getElementById('lista-gastos-fijos');
+      const contVars = document.getElementById('lista-gastos-vars');
+      contFijos.innerHTML = '';
+      contVars.innerHTML = '';
+
+      let fijosCount = 0, varsCount = 0;
+
       data.forEach(g => {
         const titularTarjeta = g.medios_pago ? g.medios_pago.titular : 'Leandro';
         
+        // Clearing por cuota/mes real
         (g.distribucion || []).forEach(part => {
+          const m = parseFloat(part.monto) || 0;
           if (part.responsable === 'Leandro' && titularTarjeta === 'María') {
-            debeLeanAMaria += parseFloat(part.monto);
+            debeLeanAMaria += m;
           } else if (part.responsable === 'María' && titularTarjeta === 'Leandro') {
-            debeMariaALean += parseFloat(part.monto);
+            debeMariaALean += m;
           } else if (part.responsable !== 'Leandro' && part.responsable !== 'María') {
-            externos.push({ quien: part.responsable, monto: part.monto, concepto: g.concepto });
+            externosMap[part.responsable] = (externosMap[part.responsable] || 0) + m;
           }
         });
 
-        const div = document.createElement('div');
-        div.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center";
-        div.innerHTML = `
-          <div>
-            <div class="text-sm font-semibold text-white">${g.concepto}</div>
-            <div class="text-[11px] text-slate-400">${g.medios_pago ? g.medios_pago.nombre : ''} • ${g.tipo_destino}</div>
+        // Crear Tarjeta con Desplegable
+        const montoMes = g.monto_cuota || (g.monto_total / (g.cuotas_totales || 1));
+        const item = document.createElement('div');
+        item.className = "bg-slate-900 border border-slate-800 rounded-xl overflow-hidden";
+        
+        let desgloseHTML = '';
+        (g.distribucion || []).forEach(p => {
+          desgloseHTML += `
+            <div class="flex justify-between text-[10px] text-slate-300">
+              <span>${p.responsable}:</span>
+              <span class="font-bold text-white">$${Math.round(p.monto).toLocaleString()}</span>
+            </div>
+          `;
+        });
+
+        item.innerHTML = `
+          <div onclick="toggleDesplegableGasto('${g.id}')" class="p-2.5 cursor-pointer flex justify-between items-start space-x-1">
+            <div class="truncate">
+              <span class="font-semibold text-white block truncate text-[11px]">${g.concepto}</span>
+              <span class="text-[9px] text-slate-400 block truncate">${g.medios_pago ? g.medios_pago.nombre : ''}</span>
+            </div>
+            <div class="text-right shrink-0 flex items-center space-x-1">
+              <div>
+                <span class="font-bold text-white block text-[11px]">$${Math.round(montoMes).toLocaleString()}</span>
+                <span class="text-[9px] text-slate-500 block">${g.cuotas_totales > 1 ? `1/${g.cuotas_totales}` : (g.es_fijo ? 'Fijo' : 'Var')}</span>
+              </div>
+              <i id="flecha-${g.id}" class="fa-solid fa-chevron-down text-[10px] text-slate-500 transition-transform duration-200 ml-1"></i>
+            </div>
           </div>
-          <div class="text-right">
-            <div class="text-sm font-bold text-white">$${parseFloat(g.monto_total).toLocaleString()}</div>
-            <div class="text-[10px] text-slate-500">${g.cuotas_totales > 1 ? g.cuotas_totales + ' cuotas' : '1 pago'}</div>
+
+          <!-- Acordeón oculto con participantes y botón editar -->
+          <div id="detalle-${g.id}" class="hidden bg-slate-950 p-2.5 border-t border-slate-800/80 space-y-2 text-xs">
+            <div class="space-y-1">
+              <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">Participación mensual:</span>
+              ${desgloseHTML}
+            </div>
+            <div class="border-t border-slate-800/60 pt-2 flex justify-between items-center">
+              <span class="text-[10px] text-slate-400">Total: $${parseFloat(g.monto_total).toLocaleString()}</span>
+              <div class="flex space-x-1.5">
+                <button onclick="editarGasto('${g.id}')" class="bg-blue-600/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-semibold hover:bg-blue-600/30">
+                  <i class="fa-solid fa-pen mr-1"></i>Editar
+                </button>
+                <button onclick="eliminarGasto('${g.id}')" class="bg-rose-600/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-semibold hover:bg-rose-600/30">
+                  <i class="fa-solid fa-trash mr-1"></i>Borrar
+                </button>
+              </div>
+            </div>
           </div>
         `;
-        lista.appendChild(div);
+
+        if (g.es_fijo) {
+          contFijos.appendChild(item);
+          fijosCount++;
+        } else {
+          contVars.appendChild(item);
+          varsCount++;
+        }
       });
 
-      const diff = debeLeanAMaria - debeMariaALean;
-      const clTitulo = document.getElementById('clearing-titulo');
-      const clMonto = document.getElementById('clearing-monto');
+      document.getElementById('count-fijos').innerText = fijosCount;
+      document.getElementById('count-vars').innerText = varsCount;
+
+      if (fijosCount === 0) contFijos.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos fijos</div>';
+      if (varsCount === 0) contVars.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos variables</div>';
+
+      // Actualizar Columnas de Clearing en pantalla
+      document.getElementById('clearing-col-lean').innerText = `$${Math.round(debeLeanAMaria).toLocaleString()} ARS`;
+      document.getElementById('clearing-col-maria').innerText = `$${Math.round(debeMariaALean).toLocaleString()} ARS`;
+
+      // Guardar datos listos para el modal "Total de Pagos"
+      window.clearingCalculado = {
+        debeLeanAMaria,
+        debeMariaALean,
+        externosMap
+      };
+    }
+
+    function toggleDesplegableGasto(id) {
+      const box = document.getElementById(`detalle-${id}`);
+      const flecha = document.getElementById(`flecha-${id}`);
+      box.classList.toggle('hidden');
+      flecha.classList.toggle('rotate-180');
+    }
+
+    async function eliminarGasto(id) {
+      if (!confirm('¿Seguro que deseas eliminar este gasto?')) return;
+      await sbClient.from('gastos').delete().eq('id', id);
+      showToast('Gasto eliminado');
+      await cargarGastos();
+    }
+
+    // 8. MODAL TOTAL DE PAGOS
+    function abrirModalTotalPagos() {
+      const data = window.clearingCalculado || { debeLeanAMaria: 0, debeMariaALean: 0, externosMap: {} };
+      const diff = data.debeLeanAMaria - data.debeMariaALean;
+
+      const txt = document.getElementById('modal-clearing-texto');
+      const monto = document.getElementById('modal-clearing-monto');
 
       if (diff > 0) {
-        clTitulo.innerText = 'Leandro transfiere a María:';
-        clMonto.innerHTML = `$${Math.round(diff).toLocaleString()} <span class="text-xs font-normal text-slate-400">ARS</span>`;
+        txt.innerText = 'Leandro transfiere a María:';
+        monto.innerHTML = `$${Math.round(diff).toLocaleString()} <span class="text-xs font-normal text-slate-400">ARS</span>`;
       } else if (diff < 0) {
-        clTitulo.innerText = 'María transfiere a Leandro:';
-        clMonto.innerHTML = `$${Math.round(Math.abs(diff)).toLocaleString()} <span class="text-xs font-normal text-slate-400">ARS</span>`;
+        txt.innerText = 'María transfiere a Leandro:';
+        monto.innerHTML = `$${Math.round(Math.abs(diff)).toLocaleString()} <span class="text-xs font-normal text-slate-400">ARS</span>`;
       } else {
-        clTitulo.innerText = 'Cuentas perfectamente equilibradas';
-        clMonto.innerHTML = `$0 <span class="text-xs font-normal text-slate-400">ARS</span>`;
+        txt.innerText = 'Cuentas perfectamente saldadas';
+        monto.innerHTML = `$0 <span class="text-xs font-normal text-slate-400">ARS</span>`;
       }
 
-      listaExt.innerHTML = '';
-      if (externos.length === 0) {
-        listaExt.innerHTML = '<div class="text-slate-500 text-center py-2">Sin externos pendientes.</div>';
+      // Lista de Externos
+      const contExt = document.getElementById('modal-lista-externos');
+      contExt.innerHTML = '';
+
+      const keys = Object.keys(data.externosMap);
+      if (keys.length === 0) {
+        contExt.innerHTML = '<div class="text-slate-500 text-center py-2">Sin externos pendientes este mes.</div>';
       } else {
-        externos.forEach(x => {
+        keys.forEach(k => {
           const div = document.createElement('div');
-          div.className = "bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center";
+          div.className = "flex justify-between items-center p-2 bg-slate-950 rounded-xl border border-slate-800";
           div.innerHTML = `
-            <div>
-              <span class="font-semibold text-amber-400">${x.quien}</span>
-              <span class="block text-[10px] text-slate-500">${x.concepto}</span>
-            </div>
-            <span class="font-bold text-white">$${parseFloat(x.monto).toLocaleString()}</span>
+            <span class="font-bold text-amber-400">${k}</span>
+            <span class="font-black text-white">$${Math.round(data.externosMap[k]).toLocaleString()}</span>
           `;
-          listaExt.appendChild(div);
+          contExt.appendChild(div);
         });
       }
+
+      modalTotalPagos(true);
+    }
+
+    function modalTotalPagos(show) {
+      document.getElementById('modal-total-pagos').classList.toggle('hidden', !show);
     }
 
     function switchTab(tab) {
