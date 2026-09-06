@@ -40,12 +40,10 @@
     <header class="bg-slate-900/80 backdrop-blur-md px-5 pt-3 pb-3 border-b border-slate-800 flex justify-between items-center z-10">
       <div>
         <div class="flex items-center space-x-1">
-          <!-- Desplegable para Liquidación y Ajustes -->
           <select id="select-mes-activo" onchange="cambiarMesActivo(this.value)" class="bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2 rounded-lg border border-slate-800 focus:outline-none cursor-pointer">
           </select>
-          <!-- Badge estático para la pestaña Anotar -->
           <span id="label-mes-actual-estatico" class="hidden bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2.5 rounded-lg border border-slate-800">
-            MES ACTUAL
+            OCTUBRE 2026
           </span>
         </div>
         <h1 class="text-base font-bold text-white tracking-tight mt-0.5">Finanzas del Hogar</h1>
@@ -171,7 +169,7 @@
             </div>
           </div>
 
-          <!-- Panel Compartido Editable (Inicia en Blanco con placeholder) -->
+          <!-- Panel Compartido Editable -->
           <div id="panel-editable" class="hidden bg-slate-900/90 border border-cyan-500/40 p-3.5 rounded-2xl space-y-3">
             <div class="flex justify-between items-center text-xs">
               <span class="font-semibold text-cyan-400">Distribución de Responsables</span>
@@ -181,12 +179,10 @@
             </div>
 
             <div id="contenedor-participantes" class="space-y-2 text-xs">
-              <!-- Leandro -->
               <div class="flex items-center space-x-2">
                 <span class="w-16 text-slate-300 font-medium">Leandro:</span>
                 <input type="number" step="any" id="part-leandro" oninput="validarSumaEditable()" placeholder="Indicar monto" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-blue-400 font-bold focus:outline-none focus:border-cyan-500">
               </div>
-              <!-- María -->
               <div class="flex items-center space-x-2">
                 <span class="w-16 text-slate-300 font-medium">María:</span>
                 <input type="number" step="any" id="part-maria" oninput="validarSumaEditable()" placeholder="Indicar monto" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-rose-400 font-bold focus:outline-none focus:border-cyan-500">
@@ -231,7 +227,6 @@
           </button>
         </div>
 
-        <!-- 2 Columnas de Totales Brutos: Leandro y María -->
         <div class="grid grid-cols-2 gap-2.5 text-xs">
           <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
             <div>
@@ -256,7 +251,6 @@
           </div>
         </div>
 
-        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
           <div class="grid grid-cols-2 gap-2 text-xs">
@@ -383,7 +377,7 @@
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">Tipo de Cálculo <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="setIngresoCalculo(true)" id="btn-calc-fijo" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">Fijo (Prorrateo)</button>
+              <button type="button" onclick="setIngresoCalculo(true)" id="btn-calc-fijo" class="py-1.5 rounded-lg border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-semibold">Fijo (Prorrateo)</button>
               <button type="button" onclick="setIngresoCalculo(false)" id="btn-calc-var" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">Variable (Extra)</button>
             </div>
           </div>
@@ -497,16 +491,11 @@
     let ingresosData = [];
     let gastosCache = [];
 
-    // OBTENER MES CALENDARIO ACTUAL REAL
-    const now = new Date();
-    const curYear = now.getFullYear();
-    const curMonthNum = String(now.getMonth() + 1).padStart(2, '0');
-    const mesActualReal = `${curYear}-${curMonthNum}`;
-
+    // Mes calendario actual de operación
+    const mesActualReal = "2026-10";
     let mesActivo = mesActualReal;
     let cantidadMesesVisibles = 3;
 
-    // Generador de lista de meses
     function generarListaMeses(baseYear, baseMonth, cantidad) {
       const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
       const res = [];
@@ -525,7 +514,7 @@
       return res;
     }
 
-    const baseMeses = generarListaMeses(2026, 10, 24); // Rango proyectable
+    const baseMeses = generarListaMeses(2026, 10, 24);
 
     let nuevoIngresoUser = null;
     let nuevoIngresoMoneda = null;
@@ -545,7 +534,6 @@
     });
 
     async function init() {
-      // Asegurar que el mes activo exista en la base
       if (!baseMeses.some(m => m.key === mesActivo)) {
         mesActivo = baseMeses[0].key;
       }
@@ -556,7 +544,6 @@
       await cargarGastos();
     }
 
-    // SELECTOR DE MESES
     function renderSelectorMeses() {
       const sel = document.getElementById('select-mes-activo');
       sel.innerHTML = '';
@@ -599,8 +586,8 @@
       const label = mesObj ? mesObj.label : mesActivo;
       document.getElementById('titulo-liquidacion-mes').innerText = `Liquidación de ${label}`;
 
-      const mesActualObj = baseMeses.find(m => m.key === mesActualReal) || { label: mesActualReal };
-      document.getElementById('label-mes-actual-estatico').innerText = mesActualObj.label;
+      const mesActualObj = baseMeses.find(m => m.key === mesActualReal) || { label: "OCTUBRE 2026" };
+      document.getElementById('label-mes-actual-estatico').innerText = mesActualObj.label.toUpperCase();
     }
 
     function diffMeses(mesOrigen, mesDestino) {
@@ -609,50 +596,55 @@
       return (y2 - y1) * 12 + (m2 - m1);
     }
 
-    // VALIDACIÓN DE DÍA 10 PARA EDICIÓN DE MESES PASADOS
     function esMesEditable(mesKey) {
       const diff = diffMeses(mesKey, mesActualReal);
-      if (diff < 0) return true; // Meses futuros siempre editables
-      if (diff === 0) return true; // Mes actual siempre editable
+      if (diff < 0) return true;
+      if (diff === 0) return true;
       if (diff === 1) {
-        // Mes inmediatamente anterior: editable hasta el día 10 del mes en curso
-        return now.getDate() <= 10;
+        return (new Date()).getDate() <= 10;
       }
-      return false; // Meses más antiguos están permanentemente bloqueados
+      return false;
     }
 
-    function obtenerMesPrevioKey(mesKey) {
-      const [y, m] = mesKey.split('-').map(Number);
-      const d = new Date(y, m - 1 - 1, 1);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    }
-
-    // 1. CONFIGURACIÓN TC CON HERENCIA Y REGLA DÍA 10
+    // 1. CONFIGURACIÓN TC CON PROPAGACIÓN EN CASCADA
     async function cargarConfigTC() {
       try {
-        const { data } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', mesActivo).maybeSingle();
         const inputTC = document.getElementById('cfg-tc');
         const alertaBloq = document.getElementById('alerta-tc-bloqueado');
 
-        if (data && data.tipo_cambio) {
-          tcActual = parseFloat(data.tipo_cambio);
+        // Buscar todos los registros de TC existentes para resolver la herencia exacta
+        const { data: todosTC } = await sbClient.from('configuracion_mes').select('*');
+        const tcMap = {};
+        if (todosTC) {
+          todosTC.forEach(row => {
+            const v = parseFloat(row.tipo_cambio);
+            // Ignorar valores erróneos o defaults corrompidos (como 1 o 158)
+            if (v > 500) tcMap[row.mes_anio] = v;
+          });
+        }
+
+        // Si existe un valor explícito válido para este mes
+        if (tcMap[mesActivo]) {
+          tcActual = tcMap[mesActivo];
         } else {
-          // Heredar el TC del mes anterior más cercano
-          const mesPrevKey = obtenerMesPrevioKey(mesActivo);
-          const { data: prevData } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', mesPrevKey).maybeSingle();
-          if (prevData && prevData.tipo_cambio) {
-            tcActual = parseFloat(prevData.tipo_cambio);
-          } else {
-            tcActual = 1580;
+          // Buscar el último valor válido en la cadena de meses hacia atrás
+          const curIndex = baseMeses.findIndex(m => m.key === mesActivo);
+          let encontrado = null;
+          for (let i = curIndex - 1; i >= 0; i--) {
+            const k = baseMeses[i].key;
+            if (tcMap[k]) {
+              encontrado = tcMap[k];
+              break;
+            }
           }
-          // Guardar el valor heredado
+
+          tcActual = encontrado || 1580;
           await sbClient.from('configuracion_mes').upsert({ mes_anio: mesActivo, tipo_cambio: tcActual });
         }
 
         inputTC.value = tcActual;
         document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
 
-        // Chequear bloqueo por fecha
         const editable = esMesEditable(mesActivo);
         inputTC.disabled = !editable;
         if (!editable) {
@@ -675,23 +667,42 @@
       tcActual = num;
       document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
       await sbClient.from('configuracion_mes').upsert({ mes_anio: mesActivo, tipo_cambio: tcActual });
+
+      // Propagación en cascada automática: actualizar los meses posteriores que dependan de este valor
+      const curIndex = baseMeses.findIndex(m => m.key === mesActivo);
+      if (curIndex !== -1) {
+        for (let i = curIndex + 1; i < baseMeses.length; i++) {
+          const k = baseMeses[i].key;
+          await sbClient.from('configuracion_mes').upsert({ mes_anio: k, tipo_cambio: tcActual });
+        }
+      }
+
       renderIngresos();
       calcularRatiosAutomaticos();
-      await cargarGastos(); // Recalcula prorrateos de gastos fijos
+      await cargarGastos();
     }
 
     // 2. INGRESOS CON HERENCIA AUTOMÁTICA DE FIJOS
     async function cargarIngresos() {
       try {
-        let { data, error } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesActivo);
+        let { data } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesActivo);
         
-        // Si el mes actual no tiene ningún concepto, heredar los FIJOS del mes previo
         if (!data || data.length === 0) {
-          const mesPrevKey = obtenerMesPrevioKey(mesActivo);
-          const { data: prevData } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesPrevKey).eq('es_computable', true);
-          
-          if (prevData && prevData.length > 0) {
-            const nuevosHeredados = prevData.map(item => ({
+          // Buscar el mes anterior más cercano que tenga conceptos fijos
+          const curIndex = baseMeses.findIndex(m => m.key === mesActivo);
+          let prevFijos = [];
+
+          for (let i = curIndex - 1; i >= 0; i--) {
+            const k = baseMeses[i].key;
+            const { data: pData } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', k).eq('es_computable', true);
+            if (pData && pData.length > 0) {
+              prevFijos = pData;
+              break;
+            }
+          }
+
+          if (prevFijos.length > 0) {
+            const nuevosHeredados = prevFijos.map(item => ({
               mes_imputacion: mesActivo,
               titular: item.titular,
               concepto: item.concepto,
@@ -881,7 +892,7 @@
         resetFormIngreso();
         toggleFormIngreso(false);
         await cargarIngresos();
-        await cargarGastos(); // Recalcular prorrateos automáticos
+        await cargarGastos();
       }
     }
 
@@ -1158,7 +1169,7 @@
       return cuadra;
     }
 
-    // 6. GUARDAR GASTO (SIEMPRE AL MES ACTUAL EN CURSO)
+    // 6. GUARDAR GASTO (IMPUTACIÓN AL MES CALENDARIO ACTUAL)
     async function guardarGasto(e) {
       e.preventDefault();
       const editId = document.getElementById('gasto-edit-id').value;
@@ -1240,7 +1251,7 @@
 
       let error = null;
       const payload = {
-        mes_imputacion: editId ? undefined : mesActualReal, // Nuevos siempre al mes calendario actual
+        mes_imputacion: editId ? undefined : mesActualReal,
         concepto,
         monto_total: montoTotal,
         monto_cuota: montoMes,
@@ -1268,7 +1279,7 @@
       } else {
         showToast(editId ? 'Gasto actualizado' : '¡Gasto guardado con éxito!');
         cancelarEdicionGasto();
-        mesActivo = mesActualReal; // Sincroniza vista al mes del nuevo gasto
+        mesActivo = mesActualReal;
         renderSelectorMeses();
         await cargarConfigTC();
         await cargarIngresos();
@@ -1346,14 +1357,14 @@
       const proximoMesKey = baseMeses[idx + 1].key;
       const { error } = await sbClient.from('gastos').update({ mes_imputacion: proximoMesKey }).eq('id', id);
       if (error) {
-        alert('Error: ' + error.message);
+        alert('Error al trasladar: ' + error.message);
       } else {
         showToast(`Gasto trasladado a ${baseMeses[idx + 1].label}`);
         await cargarGastos();
       }
     }
 
-    // 7. CARGA DE LIQUIDACIÓN Y RECALCULO DINÁMICO DE FIJOS
+    // 7. CARGA DE LIQUIDACIÓN Y RECALCULO DINÁMICO DE PRORRATEO
     async function cargarGastos() {
       const { data, error } = await sbClient
         .from('gastos')
@@ -1398,7 +1409,7 @@
 
         const montoMes = g.monto_cuota || (g.monto_total / cuotasTotales);
 
-        // RECALCULO DE PARTICIPACIÓN PARA EL MES VISUALIZADO
+        // Recalcular participación usando los ratios del mes en curso
         let distEfectiva = [];
         if (g.es_fijo && g.tipo_destino === 'prorrateo') {
           distEfectiva = [
@@ -1425,7 +1436,6 @@
           }
         });
 
-        // Botón cierre de tarjeta (últimos 5 días)
         let showBotonSiguienteMes = false;
         if (esTDC && g.created_at) {
           const fechaGasto = new Date(g.created_at);
@@ -1577,7 +1587,7 @@
       document.getElementById('modal-total-pagos').classList.toggle('hidden', !show);
     }
 
-    // GESTIÓN DE NAVEGACIÓN (VISIBILIDAD DEL SELECTOR VS BADGE DE MES)
+    // GESTIÓN DE PESTAÑAS (MUESTRA BADGE ESTÁTICO EN ANOTAR)
     function switchTab(tab) {
       document.getElementById('tab-cargar').classList.add('hidden');
       document.getElementById('tab-clearing').classList.add('hidden');
@@ -1591,11 +1601,9 @@
       const lblMes = document.getElementById('label-mes-actual-estatico');
 
       if (tab === 'cargar') {
-        // En pestaña Anotar se oculta el selector y se muestra el mes actual
         selMes.classList.add('hidden');
         lblMes.classList.remove('hidden');
       } else {
-        // En Liquidación y Ajustes se muestra el selector de meses
         selMes.classList.remove('hidden');
         lblMes.classList.add('hidden');
       }
