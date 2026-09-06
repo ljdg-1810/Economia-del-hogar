@@ -36,13 +36,17 @@
     
     <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-xl z-50 text-xs transition-all"></div>
 
-    <!-- Barra Superior con Selector de Mes Dinámico -->
+    <!-- Barra Superior -->
     <header class="bg-slate-900/80 backdrop-blur-md px-5 pt-3 pb-3 border-b border-slate-800 flex justify-between items-center z-10">
       <div>
         <div class="flex items-center space-x-1">
+          <!-- Desplegable para Liquidación y Ajustes -->
           <select id="select-mes-activo" onchange="cambiarMesActivo(this.value)" class="bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2 rounded-lg border border-slate-800 focus:outline-none cursor-pointer">
-            <!-- Renderizado dinámico de meses -->
           </select>
+          <!-- Badge estático para la pestaña Anotar -->
+          <span id="label-mes-actual-estatico" class="hidden bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2.5 rounded-lg border border-slate-800">
+            MES ACTUAL
+          </span>
         </div>
         <h1 class="text-base font-bold text-white tracking-tight mt-0.5">Finanzas del Hogar</h1>
       </div>
@@ -167,7 +171,7 @@
             </div>
           </div>
 
-          <!-- Panel Compartido Editable (Inicia en Blanco) -->
+          <!-- Panel Compartido Editable (Inicia en Blanco con placeholder) -->
           <div id="panel-editable" class="hidden bg-slate-900/90 border border-cyan-500/40 p-3.5 rounded-2xl space-y-3">
             <div class="flex justify-between items-center text-xs">
               <span class="font-semibold text-cyan-400">Distribución de Responsables</span>
@@ -229,7 +233,6 @@
 
         <!-- 2 Columnas de Totales Brutos: Leandro y María -->
         <div class="grid grid-cols-2 gap-2.5 text-xs">
-          <!-- Columna Leandro -->
           <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
             <div>
               <span class="font-bold text-blue-400 block mb-1 text-sm">Leandro</span>
@@ -241,7 +244,6 @@
             </div>
           </div>
 
-          <!-- Columna María -->
           <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
             <div>
               <span class="font-bold text-rose-400 block mb-1 text-sm">María</span>
@@ -282,9 +284,12 @@
         <div class="flex justify-between items-center">
           <h2 class="text-base font-semibold text-white">Parámetros e Ingresos</h2>
           
-          <div class="flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400 font-medium">TC ($):</span>
-            <input type="number" id="cfg-tc" step="any" value="1580" oninput="actualizarTC(this.value)" class="no-spin w-16 bg-slate-950 border border-slate-800 rounded-lg px-1.5 py-0.5 text-xs text-emerald-400 font-bold focus:outline-none">
+          <div class="flex flex-col items-end">
+            <div class="flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-800">
+              <span class="text-[11px] text-slate-400 font-medium">TC ($):</span>
+              <input type="number" id="cfg-tc" step="any" value="1580" oninput="actualizarTC(this.value)" class="no-spin w-16 bg-slate-950 border border-slate-800 rounded-lg px-1.5 py-0.5 text-xs text-emerald-400 font-bold focus:outline-none">
+            </div>
+            <span id="alerta-tc-bloqueado" class="text-[9px] text-amber-400 hidden mt-0.5">Bloqueado (Cierre pasado)</span>
           </div>
         </div>
 
@@ -337,7 +342,7 @@
         </div>
 
         <div>
-          <button type="button" onclick="toggleFormIngreso()" class="w-full bg-slate-900 hover:bg-slate-850 text-blue-400 border border-slate-800 font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center space-x-1.5">
+          <button type="button" id="btn-desplegar-form-ingreso" onclick="toggleFormIngreso()" class="w-full bg-slate-900 hover:bg-slate-850 text-blue-400 border border-slate-800 font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center space-x-1.5">
             <i class="fa-solid fa-plus text-xs"></i>
             <span>Agregar Concepto de Ingreso</span>
           </button>
@@ -492,23 +497,35 @@
     let ingresosData = [];
     let gastosCache = [];
 
-    // GESTIÓN DE MESES DINÁMICOS
-    let mesActivo = "2026-10";
+    // OBTENER MES CALENDARIO ACTUAL REAL
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonthNum = String(now.getMonth() + 1).padStart(2, '0');
+    const mesActualReal = `${curYear}-${curMonthNum}`;
+
+    let mesActivo = mesActualReal;
     let cantidadMesesVisibles = 3;
-    const baseMeses = [
-      { key: "2026-10", label: "Octubre 2026" },
-      { key: "2026-11", label: "Noviembre 2026" },
-      { key: "2026-12", label: "Diciembre 2026" },
-      { key: "2027-01", label: "Enero 2027" },
-      { key: "2027-02", label: "Febrero 2027" },
-      { key: "2027-03", label: "Marzo 2027" },
-      { key: "2027-04", label: "Abril 2027" },
-      { key: "2027-05", label: "Mayo 2027" },
-      { key: "2027-06", label: "Junio 2027" },
-      { key: "2027-07", label: "Julio 2027" },
-      { key: "2027-08", label: "Agosto 2027" },
-      { key: "2027-09", label: "Septiembre 2027" }
-    ];
+
+    // Generador de lista de meses
+    function generarListaMeses(baseYear, baseMonth, cantidad) {
+      const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      const res = [];
+      let y = baseYear;
+      let m = baseMonth;
+      for (let i = 0; i < cantidad; i++) {
+        const key = `${y}-${String(m).padStart(2, '0')}`;
+        const label = `${mesesNombres[m - 1]} ${y}`;
+        res.push({ key, label });
+        m++;
+        if (m > 12) {
+          m = 1;
+          y++;
+        }
+      }
+      return res;
+    }
+
+    const baseMeses = generarListaMeses(2026, 10, 24); // Rango proyectable
 
     let nuevoIngresoUser = null;
     let nuevoIngresoMoneda = null;
@@ -528,6 +545,10 @@
     });
 
     async function init() {
+      // Asegurar que el mes activo exista en la base
+      if (!baseMeses.some(m => m.key === mesActivo)) {
+        mesActivo = baseMeses[0].key;
+      }
       renderSelectorMeses();
       await cargarConfigTC();
       await cargarIngresos();
@@ -559,7 +580,7 @@
       actualizarTitulosMes();
     }
 
-    function cambiarMesActivo(val) {
+    async function cambiarMesActivo(val) {
       if (val === "VER_MAS") {
         cantidadMesesVisibles = Math.min(baseMeses.length, cantidadMesesVisibles + 3);
         renderSelectorMeses();
@@ -568,15 +589,18 @@
       }
       mesActivo = val;
       actualizarTitulosMes();
-      cargarConfigTC();
-      cargarIngresos();
-      cargarGastos();
+      await cargarConfigTC();
+      await cargarIngresos();
+      await cargarGastos();
     }
 
     function actualizarTitulosMes() {
       const mesObj = baseMeses.find(m => m.key === mesActivo);
       const label = mesObj ? mesObj.label : mesActivo;
       document.getElementById('titulo-liquidacion-mes').innerText = `Liquidación de ${label}`;
+
+      const mesActualObj = baseMeses.find(m => m.key === mesActualReal) || { label: mesActualReal };
+      document.getElementById('label-mes-actual-estatico').innerText = mesActualObj.label;
     }
 
     function diffMeses(mesOrigen, mesDestino) {
@@ -585,31 +609,103 @@
       return (y2 - y1) * 12 + (m2 - m1);
     }
 
-    // 1. CONFIGURACIÓN Y TC
+    // VALIDACIÓN DE DÍA 10 PARA EDICIÓN DE MESES PASADOS
+    function esMesEditable(mesKey) {
+      const diff = diffMeses(mesKey, mesActualReal);
+      if (diff < 0) return true; // Meses futuros siempre editables
+      if (diff === 0) return true; // Mes actual siempre editable
+      if (diff === 1) {
+        // Mes inmediatamente anterior: editable hasta el día 10 del mes en curso
+        return now.getDate() <= 10;
+      }
+      return false; // Meses más antiguos están permanentemente bloqueados
+    }
+
+    function obtenerMesPrevioKey(mesKey) {
+      const [y, m] = mesKey.split('-').map(Number);
+      const d = new Date(y, m - 1 - 1, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // 1. CONFIGURACIÓN TC CON HERENCIA Y REGLA DÍA 10
     async function cargarConfigTC() {
       try {
         const { data } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', mesActivo).maybeSingle();
+        const inputTC = document.getElementById('cfg-tc');
+        const alertaBloq = document.getElementById('alerta-tc-bloqueado');
+
         if (data && data.tipo_cambio) {
           tcActual = parseFloat(data.tipo_cambio);
-          document.getElementById('cfg-tc').value = tcActual;
-          document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
+        } else {
+          // Heredar el TC del mes anterior más cercano
+          const mesPrevKey = obtenerMesPrevioKey(mesActivo);
+          const { data: prevData } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', mesPrevKey).maybeSingle();
+          if (prevData && prevData.tipo_cambio) {
+            tcActual = parseFloat(prevData.tipo_cambio);
+          } else {
+            tcActual = 1580;
+          }
+          // Guardar el valor heredado
+          await sbClient.from('configuracion_mes').upsert({ mes_anio: mesActivo, tipo_cambio: tcActual });
+        }
+
+        inputTC.value = tcActual;
+        document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
+
+        // Chequear bloqueo por fecha
+        const editable = esMesEditable(mesActivo);
+        inputTC.disabled = !editable;
+        if (!editable) {
+          alertaBloq.classList.remove('hidden');
+          inputTC.className = "no-spin w-16 bg-slate-900 border border-slate-800 rounded-lg px-1.5 py-0.5 text-xs text-slate-500 font-bold focus:outline-none cursor-not-allowed";
+        } else {
+          alertaBloq.classList.add('hidden');
+          inputTC.className = "no-spin w-16 bg-slate-950 border border-slate-800 rounded-lg px-1.5 py-0.5 text-xs text-emerald-400 font-bold focus:outline-none";
         }
       } catch (err) { console.error(err); }
     }
 
     async function actualizarTC(val) {
+      if (!esMesEditable(mesActivo)) {
+        alert('Este mes ya está cerrado y no se puede modificar su Tipo de Cambio (límite: día 10 del mes siguiente).');
+        await cargarConfigTC();
+        return;
+      }
       const num = parseFloat(val) || 1;
       tcActual = num;
       document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
       await sbClient.from('configuracion_mes').upsert({ mes_anio: mesActivo, tipo_cambio: tcActual });
       renderIngresos();
       calcularRatiosAutomaticos();
+      await cargarGastos(); // Recalcula prorrateos de gastos fijos
     }
 
-    // 2. INGRESOS
+    // 2. INGRESOS CON HERENCIA AUTOMÁTICA DE FIJOS
     async function cargarIngresos() {
       try {
-        const { data } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesActivo);
+        let { data, error } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesActivo);
+        
+        // Si el mes actual no tiene ningún concepto, heredar los FIJOS del mes previo
+        if (!data || data.length === 0) {
+          const mesPrevKey = obtenerMesPrevioKey(mesActivo);
+          const { data: prevData } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesPrevKey).eq('es_computable', true);
+          
+          if (prevData && prevData.length > 0) {
+            const nuevosHeredados = prevData.map(item => ({
+              mes_imputacion: mesActivo,
+              titular: item.titular,
+              concepto: item.concepto,
+              monto: item.monto,
+              moneda: item.moneda,
+              es_computable: true
+            }));
+
+            await sbClient.from('fuentes_ingreso').insert(nuevosHeredados);
+            const resRecarga = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesActivo);
+            data = resRecarga.data || [];
+          }
+        }
+
         ingresosData = data || [];
         renderIngresos();
         calcularRatiosAutomaticos();
@@ -619,8 +715,17 @@
     function renderIngresos() {
       const contLean = document.getElementById('lista-ingresos-leandro');
       const contMaria = document.getElementById('lista-ingresos-maria');
+      const btnAgregar = document.getElementById('btn-desplegar-form-ingreso');
+      const editable = esMesEditable(mesActivo);
+
       contLean.innerHTML = '';
       contMaria.innerHTML = '';
+
+      if (btnAgregar) {
+        btnAgregar.disabled = !editable;
+        btnAgregar.classList.toggle('opacity-40', !editable);
+        btnAgregar.classList.toggle('cursor-not-allowed', !editable);
+      }
 
       let fijoLean = 0, varLean = 0;
       let fijoMaria = 0, varMaria = 0;
@@ -645,8 +750,10 @@
           </div>
           <div class="flex items-center space-x-1 shrink-0">
             <span class="text-[11px] font-bold text-slate-200">$${Math.round(montoARS).toLocaleString()}</span>
-            <button onclick="editarIngreso('${item.id}')" class="text-blue-400 hover:text-blue-300 p-0.5"><i class="fa-solid fa-pen text-[10px]"></i></button>
-            <button onclick="eliminarIngreso('${item.id}')" class="text-rose-400 hover:text-rose-300 p-0.5"><i class="fa-solid fa-trash text-[10px]"></i></button>
+            ${editable ? `
+              <button onclick="editarIngreso('${item.id}')" class="text-blue-400 hover:text-blue-300 p-0.5"><i class="fa-solid fa-pen text-[10px]"></i></button>
+              <button onclick="eliminarIngreso('${item.id}')" class="text-rose-400 hover:text-rose-300 p-0.5"><i class="fa-solid fa-trash text-[10px]"></i></button>
+            ` : ''}
           </div>
         `;
 
@@ -667,6 +774,10 @@
     }
 
     function toggleFormIngreso(abrir = null) {
+      if (!esMesEditable(mesActivo)) {
+        alert('Este mes ya está cerrado y sus ingresos no pueden ser alterados.');
+        return;
+      }
       const f = document.getElementById('form-nuevo-ingreso');
       if (abrir === null) f.classList.toggle('hidden');
       else if (abrir) f.classList.remove('hidden');
@@ -713,6 +824,7 @@
     }
 
     function editarIngreso(id) {
+      if (!esMesEditable(mesActivo)) return alert('Este mes ya no es editable.');
       const item = ingresosData.find(i => i.id === id);
       if (!item) return;
 
@@ -729,6 +841,7 @@
     }
 
     async function guardarNuevoIngresoDirecto() {
+      if (!esMesEditable(mesActivo)) return alert('Este mes ya no es editable.');
       const editId = document.getElementById('ingreso-edit-id').value;
       const concepto = document.getElementById('ingreso-nombre').value.trim();
       const monto = parseFloat(document.getElementById('ingreso-monto').value);
@@ -768,13 +881,16 @@
         resetFormIngreso();
         toggleFormIngreso(false);
         await cargarIngresos();
+        await cargarGastos(); // Recalcular prorrateos automáticos
       }
     }
 
     async function eliminarIngreso(id) {
+      if (!esMesEditable(mesActivo)) return alert('Este mes ya no es editable.');
       if (!confirm('¿Eliminar este concepto?')) return;
       await sbClient.from('fuentes_ingreso').delete().eq('id', id);
       await cargarIngresos();
+      await cargarGastos();
     }
 
     function calcularRatiosAutomaticos() {
@@ -782,7 +898,7 @@
       let totalMariaFijo = 0;
 
       ingresosData.filter(i => i.es_computable).forEach(i => {
-        const valorEnArs = i.moneda === 'USD' ? i.monto * tcActual : i.monto;
+        const valorEnArs = i.moneda === 'USD' ? (i.monto * tcActual) : i.monto;
         if (i.titular === 'Leandro') totalLeanFijo += valorEnArs;
         else totalMariaFijo += valorEnArs;
       });
@@ -957,7 +1073,7 @@
       const box = document.getElementById('cuota-resumen-proyeccion');
       if (cuotasSeleccionadas && cuotasSeleccionadas > 1 && total > 0) {
         const valorCuota = total / cuotasSeleccionadas;
-        const [anio, mes] = mesActivo.split('-').map(Number);
+        const [anio, mes] = mesActualReal.split('-').map(Number);
         const d = new Date(anio, mes - 1, 1);
         d.setMonth(d.getMonth() + cuotasSeleccionadas - 1);
         const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -971,12 +1087,11 @@
       actualizarDistribuidores();
     }
 
-    // 5. COMPARTIDO EDITABLE (INICIA EN BLANCO)
+    // 5. COMPARTIDO EDITABLE
     function handleDestinoChange(tipo) {
       const panelEditable = document.getElementById('panel-editable');
       if (tipo === 'editable') {
         panelEditable.classList.remove('hidden');
-        // Inicializar en blanco con placeholder
         document.getElementById('part-leandro').value = '';
         document.getElementById('part-maria').value = '';
         validarSumaEditable();
@@ -1043,7 +1158,7 @@
       return cuadra;
     }
 
-    // 6. GUARDAR O EDITAR GASTO
+    // 6. GUARDAR GASTO (SIEMPRE AL MES ACTUAL EN CURSO)
     async function guardarGasto(e) {
       e.preventDefault();
       const editId = document.getElementById('gasto-edit-id').value;
@@ -1114,7 +1229,7 @@
         });
 
         if (errorFila) {
-          alert('En los terceros debes completar Nombre, Monto y quién es el Responsable a cobrar.');
+          alert('En los terceros debes completar Nombre, Monto y Responsable a cobrar.');
           return;
         }
       }
@@ -1125,7 +1240,7 @@
 
       let error = null;
       const payload = {
-        mes_imputacion: mesActivo,
+        mes_imputacion: editId ? undefined : mesActualReal, // Nuevos siempre al mes calendario actual
         concepto,
         monto_total: montoTotal,
         monto_cuota: montoMes,
@@ -1137,6 +1252,7 @@
       };
 
       if (editId) {
+        delete payload.mes_imputacion;
         const res = await sbClient.from('gastos').update(payload).eq('id', editId);
         error = res.error;
       } else {
@@ -1152,6 +1268,10 @@
       } else {
         showToast(editId ? 'Gasto actualizado' : '¡Gasto guardado con éxito!');
         cancelarEdicionGasto();
+        mesActivo = mesActualReal; // Sincroniza vista al mes del nuevo gasto
+        renderSelectorMeses();
+        await cargarConfigTC();
+        await cargarIngresos();
         await cargarGastos();
         switchTab('clearing');
       }
@@ -1212,7 +1332,6 @@
       resetTipoGasto();
     }
 
-    // 7. TRASLADAR GASTO AL SIGUIENTE MES
     async function trasladarAlSiguienteMes(id) {
       if (!confirm('¿Trasladar este gasto y sus cuotas al mes siguiente?')) return;
       
@@ -1221,22 +1340,21 @@
 
       const idx = baseMeses.findIndex(m => m.key === g.mes_imputacion);
       if (idx === -1 || idx + 1 >= baseMeses.length) {
-        return alert('No hay un mes siguiente registrado disponible en el sistema.');
+        return alert('No hay mes posterior configurado.');
       }
 
       const proximoMesKey = baseMeses[idx + 1].key;
       const { error } = await sbClient.from('gastos').update({ mes_imputacion: proximoMesKey }).eq('id', id);
       if (error) {
-        alert('Error al trasladar: ' + error.message);
+        alert('Error: ' + error.message);
       } else {
         showToast(`Gasto trasladado a ${baseMeses[idx + 1].label}`);
         await cargarGastos();
       }
     }
 
-    // 8. CARGA DE LIQUIDACIÓN CON PROYECCIÓN MULTIMES
+    // 7. CARGA DE LIQUIDACIÓN Y RECALCULO DINÁMICO DE FIJOS
     async function cargarGastos() {
-      // Traer todos los gastos registrados para proyectar fijos y cuotas
       const { data, error } = await sbClient
         .from('gastos')
         .select('*, medios_pago(nombre, titular, tipo)')
@@ -1266,29 +1384,32 @@
         let cuotaActual = 1;
 
         if (g.es_fijo) {
-          // Gasto fijo se traslada a todos los meses (desde su mes de origen en adelante)
-          if (offsetMeses >= 0) {
-            aplicaEnEsteMes = true;
-          }
+          if (offsetMeses >= 0) aplicaEnEsteMes = true;
         } else if (esTDC && cuotasTotales > 1) {
-          // Cuotas activas según offset
           if (offsetMeses >= 0 && offsetMeses < cuotasTotales) {
             aplicaEnEsteMes = true;
             cuotaActual = offsetMeses + 1;
           }
         } else {
-          // Variable tradicional: solo en su mes exacto
-          if (offsetMeses === 0) {
-            aplicaEnEsteMes = true;
-          }
+          if (offsetMeses === 0) aplicaEnEsteMes = true;
         }
 
         if (!aplicaEnEsteMes) return;
 
         const montoMes = g.monto_cuota || (g.monto_total / cuotasTotales);
 
-        // Sumatoria bruta de responsabilidades
-        (g.distribucion || []).forEach(part => {
+        // RECALCULO DE PARTICIPACIÓN PARA EL MES VISUALIZADO
+        let distEfectiva = [];
+        if (g.es_fijo && g.tipo_destino === 'prorrateo') {
+          distEfectiva = [
+            { responsable: 'Leandro', monto: montoMes * ratioLeandro },
+            { responsable: 'María', monto: montoMes * ratioMaria }
+          ];
+        } else {
+          distEfectiva = g.distribucion || [];
+        }
+
+        distEfectiva.forEach(part => {
           const m = parseFloat(part.monto) || 0;
           if (part.responsable === 'Leandro') {
             totalPagaLeandroBruto += m;
@@ -1304,22 +1425,19 @@
           }
         });
 
-        // Verificar si fue cargado los últimos 5 días del mes para habilitar botón de traslado
+        // Botón cierre de tarjeta (últimos 5 días)
         let showBotonSiguienteMes = false;
         if (esTDC && g.created_at) {
           const fechaGasto = new Date(g.created_at);
           const dia = fechaGasto.getDate();
-          if (dia >= 26) {
-            showBotonSiguienteMes = true;
-          }
+          if (dia >= 26) showBotonSiguienteMes = true;
         }
 
-        // Fila Historial Acordeón
         const item = document.createElement('div');
         item.className = "bg-slate-900 border border-slate-800 rounded-xl overflow-hidden";
         
         let desgloseHTML = '';
-        (g.distribucion || []).forEach(p => {
+        distEfectiva.forEach(p => {
           desgloseHTML += `
             <div class="flex justify-between text-[10px] text-slate-300">
               <span>${p.responsable}${p.cobrador ? ` (Cobra: ${p.cobrador})` : ''}:</span>
@@ -1413,7 +1531,7 @@
       await cargarGastos();
     }
 
-    // 9. MODAL TOTAL DE PAGOS
+    // 8. MODAL TOTAL DE PAGOS
     function abrirModalTotalPagos() {
       const data = window.clearingCalculado || { totalLeandro: 0, totalMaria: 0, terceros: [] };
       const diff = data.totalLeandro - data.totalMaria;
@@ -1459,6 +1577,7 @@
       document.getElementById('modal-total-pagos').classList.toggle('hidden', !show);
     }
 
+    // GESTIÓN DE NAVEGACIÓN (VISIBILIDAD DEL SELECTOR VS BADGE DE MES)
     function switchTab(tab) {
       document.getElementById('tab-cargar').classList.add('hidden');
       document.getElementById('tab-clearing').classList.add('hidden');
@@ -1467,6 +1586,19 @@
       document.getElementById('nav-cargar').className = "flex flex-col items-center text-slate-400 hover:text-slate-200 py-1 transition";
       document.getElementById('nav-clearing').className = "flex flex-col items-center text-slate-400 hover:text-slate-200 py-1 transition";
       document.getElementById('nav-config').className = "flex flex-col items-center text-slate-400 hover:text-slate-200 py-1 transition";
+
+      const selMes = document.getElementById('select-mes-activo');
+      const lblMes = document.getElementById('label-mes-actual-estatico');
+
+      if (tab === 'cargar') {
+        // En pestaña Anotar se oculta el selector y se muestra el mes actual
+        selMes.classList.add('hidden');
+        lblMes.classList.remove('hidden');
+      } else {
+        // En Liquidación y Ajustes se muestra el selector de meses
+        selMes.classList.remove('hidden');
+        lblMes.classList.add('hidden');
+      }
 
       document.getElementById('tab-' + tab).classList.remove('hidden');
       document.getElementById('nav-' + tab).className = "flex flex-col items-center text-blue-500 py-1 transition";
