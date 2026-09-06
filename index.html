@@ -24,10 +24,10 @@
 </head>
 <body class="bg-slate-900 flex justify-center items-center min-h-screen p-0 sm:p-4 font-sans text-slate-100">
 
-  <!-- Configuración Supabase -->
+  <!-- Configuración Supabase Fija -->
   <script>
     const SUPABASE_URL = "https://taitqlkmdcqpkscgaxoo.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_uNovfH0FSBIZ3UVEUKEgKA_ny9Ssyj8"; // <-- Pega tu Publishable Key aquí
+    const SUPABASE_ANON_KEY = "sb_publishable_uNovfH0FSBIZ3UVEUKEgKA_ny9Ssyj8";
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
 
@@ -40,9 +40,9 @@
     <header class="bg-slate-900/80 backdrop-blur-md px-5 pt-3 pb-3 border-b border-slate-800 flex justify-between items-center z-10">
       <div>
         <div class="flex items-center space-x-1">
-          <select id="select-mes-activo" onchange="cambiarMesActivo(this.value)" class="bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2 rounded-lg border border-slate-800 focus:outline-none cursor-pointer">
+          <select id="select-mes-activo" onchange="cambiarMesActivo(this.value)" class="hidden bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2 rounded-lg border border-slate-800 focus:outline-none cursor-pointer">
           </select>
-          <span id="label-mes-actual-estatico" class="hidden bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2.5 rounded-lg border border-slate-800">
+          <span id="label-mes-actual-estatico" class="bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2.5 rounded-lg border border-slate-800">
             OCTUBRE 2026
           </span>
         </div>
@@ -218,8 +218,8 @@
         </form>
       </div>
 
-      <!-- PESTAÑA 2: LIQUIDACIÓN -->
-      <div id="tab-clearing" class="space-y-4">
+      <!-- PESTAÑA 2: LIQUIDACIÓN (AQUÍ ESTÁ AGREGADA LA CLASE 'hidden') -->
+      <div id="tab-clearing" class="hidden space-y-4">
         <div class="flex justify-between items-center">
           <h2 id="titulo-liquidacion-mes" class="text-base font-semibold text-white">Liquidación</h2>
           <button onclick="abrirModalTotalPagos()" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition shadow-sm">
@@ -252,7 +252,7 @@
           </div>
         </div>
 
-        <!-- SECCIÓN NUEVA: VENCIMIENTOS Y RESÚMENES POR TARJETA -->
+        <!-- VENCIMIENTOS Y RESÚMENES POR TARJETA -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
@@ -485,11 +485,11 @@
 
     <!-- Barra Inferior -->
     <nav class="bg-slate-900 border-t border-slate-800 px-6 py-2 flex justify-between items-center text-xs">
-      <button onclick="switchTab('cargar')" id="nav-cargar" class="flex flex-col items-center text-slate-400 hover:text-slate-200 py-1 transition">
+      <button onclick="switchTab('cargar')" id="nav-cargar" class="flex flex-col items-center text-blue-500 py-1 transition">
         <i class="fa-solid fa-circle-plus text-lg mb-1"></i>
         <span>Anotar</span>
       </button>
-      <button onclick="switchTab('clearing')" id="nav-clearing" class="flex flex-col items-center text-blue-500 py-1 transition">
+      <button onclick="switchTab('clearing')" id="nav-clearing" class="flex flex-col items-center text-slate-400 hover:text-slate-200 py-1 transition">
         <i class="fa-solid fa-receipt text-lg mb-1"></i>
         <span>Liquidación</span>
       </button>
@@ -560,6 +560,7 @@
       await cargarIngresos();
       await cargarMediosPago();
       await cargarGastos();
+      switchTab('cargar'); // Asegura iniciar siempre en la solapa de carga
     }
 
     function renderSelectorMeses() {
@@ -624,7 +625,7 @@
       return false;
     }
 
-    // 1. CONFIGURACIÓN TC CON PROPAGACIÓN EN CASCADA
+    // 1. CONFIGURACIÓN TC CON HERENCIA
     async function cargarConfigTC() {
       try {
         const inputTC = document.getElementById('cfg-tc');
@@ -1376,7 +1377,7 @@
       }
     }
 
-    // 7. CARGA DE LIQUIDACIÓN Y GENERACIÓN DE RESÚMENES POR TARJETA
+    // 7. CARGA DE LIQUIDACIÓN Y RESÚMENES
     async function cargarGastos() {
       const { data, error } = await sbClient
         .from('gastos')
@@ -1425,7 +1426,6 @@
 
         const montoMes = g.monto_cuota || (g.monto_total / cuotasTotales);
 
-        // Recalcular participación mensual activa
         let distEfectiva = [];
         if (g.es_fijo && g.tipo_destino === 'prorrateo') {
           distEfectiva = [
@@ -1436,7 +1436,6 @@
           distEfectiva = g.distribucion || [];
         }
 
-        // Acumulación en totales brutos
         distEfectiva.forEach(part => {
           const m = parseFloat(part.monto) || 0;
           if (part.responsable === 'Leandro') {
@@ -1453,7 +1452,6 @@
           }
         });
 
-        // ACUMULACIÓN PARA RESÚMENES DE TARJETAS / MEDIOS DE PAGO
         const mpId = g.medio_pago_id || 'sin_medio';
         if (!resumenesTarjetas[mpId]) {
           resumenesTarjetas[mpId] = {
@@ -1489,7 +1487,6 @@
           distribucion: distEfectiva
         });
 
-        // Botón cierre de tarjeta
         let showBotonSiguienteMes = false;
         if (esTDC && g.created_at) {
           const fechaGasto = new Date(g.created_at);
@@ -1497,7 +1494,6 @@
           if (dia >= 26) showBotonSiguienteMes = true;
         }
 
-        // Historial Acordeón
         const item = document.createElement('div');
         item.className = "bg-slate-900 border border-slate-800 rounded-xl overflow-hidden";
         
@@ -1570,7 +1566,6 @@
       if (fijosCount === 0) contFijos.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos fijos</div>';
       if (varsCount === 0) contVars.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos variables</div>';
 
-      // RENDERIZAR RESÚMENES DE TARJETAS
       const listaCards = Object.values(resumenesTarjetas);
       document.getElementById('count-resumenes-tarjetas').innerText = listaCards.length;
 
@@ -1613,7 +1608,6 @@
               </div>
             </div>
 
-            <!-- Desglose de Quién Paga este Resumen -->
             <div class="grid grid-cols-3 gap-1 bg-slate-950 p-2 rounded-xl border border-slate-800/80 text-center">
               <div>
                 <span class="block text-[9px] text-blue-400 font-semibold">Leandro</span>
@@ -1629,7 +1623,6 @@
               </div>
             </div>
 
-            <!-- Botón Acordeón de Consumos que componen el resumen -->
             <div>
               <button onclick="toggleAcordeonTarjeta('${t.id}')" class="w-full text-[10px] text-slate-400 hover:text-slate-200 py-1 flex items-center justify-center space-x-1 transition">
                 <span>Ver ${t.consumos.length} gasto(s) de esta tarjeta</span>
@@ -1722,6 +1715,7 @@
       document.getElementById('modal-total-pagos').classList.toggle('hidden', !show);
     }
 
+    // GESTIÓN DE PESTAÑAS
     function switchTab(tab) {
       document.getElementById('tab-cargar').classList.add('hidden');
       document.getElementById('tab-clearing').classList.add('hidden');
