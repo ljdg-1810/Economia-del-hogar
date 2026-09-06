@@ -227,6 +227,7 @@
           </button>
         </div>
 
+        <!-- 2 Columnas de Totales Brutos: Leandro y María -->
         <div class="grid grid-cols-2 gap-2.5 text-xs">
           <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between">
             <div>
@@ -251,6 +252,24 @@
           </div>
         </div>
 
+        <!-- SECCIÓN NUEVA: VENCIMIENTOS Y RESÚMENES POR TARJETA -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
+              <i class="fa-solid fa-credit-card mr-1.5 text-blue-400"></i>
+              <span>Vencimientos y Resúmenes Bancarios</span>
+            </h3>
+            <span id="count-resumenes-tarjetas" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">0</span>
+          </div>
+          
+          <div id="lista-resumenes-tarjetas" class="space-y-2 text-xs">
+            <div class="text-slate-500 text-center py-3 bg-slate-900/40 rounded-2xl border border-slate-800">
+              No hay consumos de tarjetas registrados para este mes.
+            </div>
+          </div>
+        </div>
+
+        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
           <div class="grid grid-cols-2 gap-2 text-xs">
@@ -491,7 +510,6 @@
     let ingresosData = [];
     let gastosCache = [];
 
-    // Mes calendario actual de operación
     const mesActualReal = "2026-10";
     let mesActivo = mesActualReal;
     let cantidadMesesVisibles = 3;
@@ -612,22 +630,18 @@
         const inputTC = document.getElementById('cfg-tc');
         const alertaBloq = document.getElementById('alerta-tc-bloqueado');
 
-        // Buscar todos los registros de TC existentes para resolver la herencia exacta
         const { data: todosTC } = await sbClient.from('configuracion_mes').select('*');
         const tcMap = {};
         if (todosTC) {
           todosTC.forEach(row => {
             const v = parseFloat(row.tipo_cambio);
-            // Ignorar valores erróneos o defaults corrompidos (como 1 o 158)
             if (v > 500) tcMap[row.mes_anio] = v;
           });
         }
 
-        // Si existe un valor explícito válido para este mes
         if (tcMap[mesActivo]) {
           tcActual = tcMap[mesActivo];
         } else {
-          // Buscar el último valor válido en la cadena de meses hacia atrás
           const curIndex = baseMeses.findIndex(m => m.key === mesActivo);
           let encontrado = null;
           for (let i = curIndex - 1; i >= 0; i--) {
@@ -668,7 +682,6 @@
       document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
       await sbClient.from('configuracion_mes').upsert({ mes_anio: mesActivo, tipo_cambio: tcActual });
 
-      // Propagación en cascada automática: actualizar los meses posteriores que dependan de este valor
       const curIndex = baseMeses.findIndex(m => m.key === mesActivo);
       if (curIndex !== -1) {
         for (let i = curIndex + 1; i < baseMeses.length; i++) {
@@ -688,7 +701,6 @@
         let { data } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesActivo);
         
         if (!data || data.length === 0) {
-          // Buscar el mes anterior más cercano que tenga conceptos fijos
           const curIndex = baseMeses.findIndex(m => m.key === mesActivo);
           let prevFijos = [];
 
@@ -1169,7 +1181,7 @@
       return cuadra;
     }
 
-    // 6. GUARDAR GASTO (IMPUTACIÓN AL MES CALENDARIO ACTUAL)
+    // 6. GUARDAR GASTO
     async function guardarGasto(e) {
       e.preventDefault();
       const editId = document.getElementById('gasto-edit-id').value;
@@ -1364,7 +1376,7 @@
       }
     }
 
-    // 7. CARGA DE LIQUIDACIÓN Y RECALCULO DINÁMICO DE PRORRATEO
+    // 7. CARGA DE LIQUIDACIÓN Y GENERACIÓN DE RESÚMENES POR TARJETA
     async function cargarGastos() {
       const { data, error } = await sbClient
         .from('gastos')
@@ -1377,11 +1389,15 @@
       let totalPagaLeandroBruto = 0;
       let totalPagaMariaBruto = 0;
       let listaTercerosACobrar = [];
+      const resumenesTarjetas = {};
 
       const contFijos = document.getElementById('lista-gastos-fijos');
       const contVars = document.getElementById('lista-gastos-vars');
+      const contTarjetas = document.getElementById('lista-resumenes-tarjetas');
+
       contFijos.innerHTML = '';
       contVars.innerHTML = '';
+      contTarjetas.innerHTML = '';
 
       let fijosCount = 0, varsCount = 0;
 
@@ -1409,7 +1425,7 @@
 
         const montoMes = g.monto_cuota || (g.monto_total / cuotasTotales);
 
-        // Recalcular participación usando los ratios del mes en curso
+        // Recalcular participación mensual activa
         let distEfectiva = [];
         if (g.es_fijo && g.tipo_destino === 'prorrateo') {
           distEfectiva = [
@@ -1420,6 +1436,7 @@
           distEfectiva = g.distribucion || [];
         }
 
+        // Acumulación en totales brutos
         distEfectiva.forEach(part => {
           const m = parseFloat(part.monto) || 0;
           if (part.responsable === 'Leandro') {
@@ -1436,6 +1453,43 @@
           }
         });
 
+        // ACUMULACIÓN PARA RESÚMENES DE TARJETAS / MEDIOS DE PAGO
+        const mpId = g.medio_pago_id || 'sin_medio';
+        if (!resumenesTarjetas[mpId]) {
+          resumenesTarjetas[mpId] = {
+            id: mpId,
+            medio: g.medios_pago || { nombre: 'Otros / Sin Medio', titular: titularTarjeta, tipo: 'Efectivo/Sueldo' },
+            totalResumen: 0,
+            consumoLeandro: 0,
+            consumoMaria: 0,
+            consumoTerceros: 0,
+            consumos: []
+          };
+        }
+
+        resumenesTarjetas[mpId].totalResumen += montoMes;
+
+        distEfectiva.forEach(part => {
+          const m = parseFloat(part.monto) || 0;
+          if (part.responsable === 'Leandro') {
+            resumenesTarjetas[mpId].consumoLeandro += m;
+          } else if (part.responsable === 'María') {
+            resumenesTarjetas[mpId].consumoMaria += m;
+          } else {
+            resumenesTarjetas[mpId].consumoTerceros += m;
+          }
+        });
+
+        const badgeCuota = cuotasTotales > 1 ? `${cuotaActual}/${cuotasTotales}` : (g.es_fijo ? 'Fijo' : 'Var');
+
+        resumenesTarjetas[mpId].consumos.push({
+          concepto: g.concepto,
+          montoMes,
+          badgeCuota,
+          distribucion: distEfectiva
+        });
+
+        // Botón cierre de tarjeta
         let showBotonSiguienteMes = false;
         if (esTDC && g.created_at) {
           const fechaGasto = new Date(g.created_at);
@@ -1443,6 +1497,7 @@
           if (dia >= 26) showBotonSiguienteMes = true;
         }
 
+        // Historial Acordeón
         const item = document.createElement('div');
         item.className = "bg-slate-900 border border-slate-800 rounded-xl overflow-hidden";
         
@@ -1455,8 +1510,6 @@
             </div>
           `;
         });
-
-        const badgeCuota = cuotasTotales > 1 ? `${cuotaActual}/${cuotasTotales}` : (g.es_fijo ? 'Fijo' : 'Var');
 
         item.innerHTML = `
           <div onclick="toggleDesplegableGasto('${g.id}')" class="p-2.5 cursor-pointer flex justify-between items-start space-x-1">
@@ -1517,6 +1570,81 @@
       if (fijosCount === 0) contFijos.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos fijos</div>';
       if (varsCount === 0) contVars.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos variables</div>';
 
+      // RENDERIZAR RESÚMENES DE TARJETAS
+      const listaCards = Object.values(resumenesTarjetas);
+      document.getElementById('count-resumenes-tarjetas').innerText = listaCards.length;
+
+      if (listaCards.length === 0) {
+        contTarjetas.innerHTML = '<div class="text-slate-500 text-center py-3 bg-slate-900/40 rounded-2xl border border-slate-800">No hay consumos de tarjetas registrados para este mes.</div>';
+      } else {
+        listaCards.forEach(t => {
+          const cardDiv = document.createElement('div');
+          cardDiv.className = "bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5 shadow-sm";
+
+          let consumosHTML = '';
+          t.consumos.forEach(c => {
+            let partText = c.distribucion.map(d => `${d.responsable}: $${Math.round(d.monto).toLocaleString()}`).join(' | ');
+            consumosHTML += `
+              <div class="flex justify-between items-center text-[10px] py-1 border-b border-slate-900 last:border-0">
+                <div class="truncate pr-2">
+                  <span class="text-white font-medium block truncate">${c.concepto}</span>
+                  <span class="text-[9px] text-slate-500">${partText}</span>
+                </div>
+                <div class="text-right shrink-0">
+                  <span class="text-slate-300 font-bold">$${Math.round(c.montoMes).toLocaleString()}</span>
+                  <span class="block text-[8px] text-slate-500">${c.badgeCuota}</span>
+                </div>
+              </div>
+            `;
+          });
+
+          cardDiv.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="flex items-center space-x-1.5">
+                  <span class="font-bold text-white text-xs">${t.medio.nombre}</span>
+                  <span class="text-[9px] px-1.5 py-0.2 rounded-md font-semibold ${t.medio.titular === 'Leandro' ? 'bg-blue-500/20 text-blue-300' : 'bg-rose-500/20 text-rose-300'}">${t.medio.titular}</span>
+                </div>
+                <span class="text-[10px] text-slate-400 block mt-0.5">${t.medio.tipo}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] text-slate-400 block font-medium">Total Resumen:</span>
+                <span class="text-sm font-black text-emerald-400">$${Math.round(t.totalResumen).toLocaleString()} <span class="text-[10px] font-normal text-slate-400">ARS</span></span>
+              </div>
+            </div>
+
+            <!-- Desglose de Quién Paga este Resumen -->
+            <div class="grid grid-cols-3 gap-1 bg-slate-950 p-2 rounded-xl border border-slate-800/80 text-center">
+              <div>
+                <span class="block text-[9px] text-blue-400 font-semibold">Leandro</span>
+                <span class="text-[11px] font-bold text-white">$${Math.round(t.consumoLeandro).toLocaleString()}</span>
+              </div>
+              <div>
+                <span class="block text-[9px] text-rose-400 font-semibold">María</span>
+                <span class="text-[11px] font-bold text-white">$${Math.round(t.consumoMaria).toLocaleString()}</span>
+              </div>
+              <div>
+                <span class="block text-[9px] text-amber-400 font-semibold">Terceros</span>
+                <span class="text-[11px] font-bold text-white">$${Math.round(t.consumoTerceros).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <!-- Botón Acordeón de Consumos que componen el resumen -->
+            <div>
+              <button onclick="toggleAcordeonTarjeta('${t.id}')" class="w-full text-[10px] text-slate-400 hover:text-slate-200 py-1 flex items-center justify-center space-x-1 transition">
+                <span>Ver ${t.consumos.length} gasto(s) de esta tarjeta</span>
+                <i id="flecha-card-${t.id}" class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200"></i>
+              </button>
+              <div id="detalle-card-${t.id}" class="hidden bg-slate-950/80 rounded-xl p-2 mt-1 border border-slate-850 space-y-0.5">
+                ${consumosHTML}
+              </div>
+            </div>
+          `;
+
+          contTarjetas.appendChild(cardDiv);
+        });
+      }
+
       document.getElementById('clearing-col-lean').innerText = `$${Math.round(totalPagaLeandroBruto).toLocaleString()} ARS`;
       document.getElementById('clearing-col-maria').innerText = `$${Math.round(totalPagaMariaBruto).toLocaleString()} ARS`;
 
@@ -1525,6 +1653,13 @@
         totalMaria: totalPagaMariaBruto,
         terceros: listaTercerosACobrar
       };
+    }
+
+    function toggleAcordeonTarjeta(id) {
+      const box = document.getElementById(`detalle-card-${id}`);
+      const flecha = document.getElementById(`flecha-card-${id}`);
+      box.classList.toggle('hidden');
+      flecha.classList.toggle('rotate-180');
     }
 
     function toggleDesplegableGasto(id) {
@@ -1587,7 +1722,6 @@
       document.getElementById('modal-total-pagos').classList.toggle('hidden', !show);
     }
 
-    // GESTIÓN DE PESTAÑAS (MUESTRA BADGE ESTÁTICO EN ANOTAR)
     function switchTab(tab) {
       document.getElementById('tab-cargar').classList.add('hidden');
       document.getElementById('tab-clearing').classList.add('hidden');
