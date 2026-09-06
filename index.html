@@ -20,6 +20,10 @@
     input[type=number] {
       -moz-appearance: textfield;
     }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body class="bg-slate-900 flex justify-center items-center min-h-screen p-0 sm:p-4 font-sans text-slate-100">
@@ -103,6 +107,15 @@
             <select id="select-tarjeta" required onchange="handleMedioPagoChange()" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
               <option value="">Selecciona un medio de pago...</option>
             </select>
+          </div>
+
+          <!-- Alerta de fecha de corte para TDC en los últimos 5 días -->
+          <div id="alerta-tdc-corte" class="hidden bg-rose-950/40 border border-rose-500/50 p-2.5 rounded-xl flex items-start space-x-2 text-xs text-rose-300">
+            <i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5 text-sm"></i>
+            <div>
+              <span class="font-bold block">¡Atención con la fecha de corte!</span>
+              <span id="alerta-tdc-texto" class="text-[11px] text-rose-200/90">Esta tarjeta corta el día ... Si esperas a la fecha de corte, el gasto entrará recién en el resumen del próximo mes.</span>
+            </div>
           </div>
 
           <!-- Cuotas TDC -->
@@ -252,7 +265,7 @@
           </div>
         </div>
 
-        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas (SUBIDO) -->
+        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
           <div class="grid grid-cols-2 gap-2 text-xs">
@@ -274,7 +287,7 @@
           </div>
         </div>
 
-        <!-- VENCIMIENTOS Y RESÚMENES POR TARJETA (BAJADO AL FINAL) -->
+        <!-- VENCIMIENTOS Y RESÚMENES POR TARJETA (CON FECHAS DE CORTE Y VENCIMIENTO) -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
@@ -292,7 +305,7 @@
         </div>
       </div>
 
-      <!-- PESTAÑA 3: PARÁMETROS E INGRESOS -->
+      <!-- PESTAÑA 3: PARÁMETROS E INGRESOS Y GESTIÓN DE CORTES/VENCIMIENTOS -->
       <div id="tab-config" class="hidden space-y-4">
         <div class="flex justify-between items-center">
           <h2 class="text-base font-semibold text-white">Parámetros e Ingresos</h2>
@@ -406,6 +419,23 @@
             <button type="button" onclick="guardarNuevoIngresoDirecto()" class="w-2/3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold shadow-md shadow-blue-600/20">Guardar Concepto</button>
           </div>
         </div>
+
+        <!-- SECCIÓN 1: CORTES Y VENCIMIENTO DE TDC -->
+        <div class="pt-2 border-t border-slate-800/80 space-y-2.5">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-bold text-white flex items-center">
+              <i class="fa-solid fa-calendar-check mr-1.5 text-emerald-400"></i>
+              <span>Cortes y Vencimiento de TDC</span>
+            </h3>
+            <span class="text-[10px] text-slate-400">Mes visualizado</span>
+          </div>
+
+          <div id="lista-fechas-tdc" class="space-y-2 text-xs">
+            <div class="text-slate-500 text-center py-2 bg-slate-950/60 rounded-xl border border-slate-850">
+              Cargando tarjetas de crédito...
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -509,6 +539,7 @@
     let tarjetasData = [];
     let ingresosData = [];
     let gastosCache = [];
+    let tdcFechasMap = {};
 
     const mesActualReal = "2026-10";
     let mesActivo = mesActualReal;
@@ -559,6 +590,7 @@
       await cargarConfigTC();
       await cargarIngresos();
       await cargarMediosPago();
+      await cargarTdcFechas();
       await cargarGastos();
       switchTab('cargar');
     }
@@ -597,6 +629,7 @@
       actualizarTitulosMes();
       await cargarConfigTC();
       await cargarIngresos();
+      await cargarTdcFechas();
       await cargarGastos();
     }
 
@@ -825,7 +858,7 @@
       document.getElementById('btn-user-maria').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
       document.getElementById('btn-mon-ars').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
       document.getElementById('btn-mon-usd').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
-      document.getElementById('btn-calc-fijo').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-calc-fijo').className = 'py-1.5 rounded-lg border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-semibold';
       document.getElementById('btn-calc-var').className = 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
     }
 
@@ -1009,6 +1042,7 @@
         document.getElementById('medio-tipo').value = '';
         showToast('Medio de pago creado');
         await cargarMediosPago();
+        await renderModuloTdcFechas();
       }
     }
 
@@ -1016,13 +1050,92 @@
       if (!confirm('¿Eliminar este medio de pago?')) return;
       await sbClient.from('medios_pago').delete().eq('id', id);
       await cargarMediosPago();
+      await renderModuloTdcFechas();
     }
 
-    // 4. LÓGICA DE GASTOS: CUOTAS Y TIPO
+    // 4. CORTES Y VENCIMIENTO DE TDC (GESTIÓN EN AJUSTES)
+    async function cargarTdcFechas() {
+      try {
+        const { data } = await sbClient.from('tdc_fechas').select('*').eq('mes_anio', mesActivo);
+        tdcFechasMap = {};
+        if (data) {
+          data.forEach(item => {
+            tdcFechasMap[item.medio_pago_id] = item;
+          });
+        }
+        renderModuloTdcFechas();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderModuloTdcFechas() {
+      const cont = document.getElementById('lista-fechas-tdc');
+      if (!cont) return;
+
+      const tdcs = tarjetasData.filter(t => t.tipo === 'TDC');
+      cont.innerHTML = '';
+
+      if (tdcs.length === 0) {
+        cont.innerHTML = '<div class="text-slate-500 text-center py-2 bg-slate-950/60 rounded-xl border border-slate-850">No hay tarjetas de crédito (TDC) configuradas.</div>';
+        return;
+      }
+
+      tdcs.forEach(t => {
+        const info = tdcFechasMap[t.id] || {};
+        const corte = info.fecha_corte || '';
+        const vto = info.fecha_vencimiento || '';
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-2";
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-white text-xs">${t.nombre} <strong class="${t.titular === 'Leandro' ? 'text-blue-400' : 'text-rose-400'}">(${t.titular})</strong></span>
+            <button onclick="guardarFechasTDC('${t.id}')" class="bg-blue-600/30 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded text-[10px] font-semibold hover:bg-blue-600/50">
+              Guardar Fechas
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <label class="block text-slate-400 mb-0.5">Fecha de Corte:</label>
+              <input type="date" id="corte-${t.id}" value="${corte}" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-0.5">Fecha de Vencimiento:</label>
+              <input type="date" id="vto-${t.id}" value="${vto}" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-blue-500">
+            </div>
+          </div>
+        `;
+        cont.appendChild(card);
+      });
+    }
+
+    async function guardarFechasTDC(medioPagoId) {
+      const fechaCorte = document.getElementById(`corte-${medioPagoId}`).value || null;
+      const fechaVencimiento = document.getElementById(`vto-${medioPagoId}`).value || null;
+
+      const { error } = await sbClient.from('tdc_fechas').upsert({
+        mes_anio: mesActivo,
+        medio_pago_id: medioPagoId,
+        fecha_corte: fechaCorte,
+        fecha_vencimiento: fechaVencimiento
+      }, { onConflict: 'mes_anio, medio_pago_id' });
+
+      if (error) {
+        alert('Error al guardar fechas: ' + error.message);
+      } else {
+        showToast('Fechas de TDC guardadas');
+        await cargarTdcFechas();
+        await cargarGastos();
+      }
+    }
+
+    // 5. LÓGICA DE GASTOS: CUOTAS, TIPO Y ALERTA DE CORTE
     function handleMedioPagoChange() {
       const id = document.getElementById('select-tarjeta').value;
       const secCuotas = document.getElementById('seccion-cuotas');
       const secTipoGasto = document.getElementById('seccion-tipo-gasto');
+      const alertaCorte = document.getElementById('alerta-tdc-corte');
       const medio = tarjetasData.find(t => t.id === id);
 
       if (medio && medio.tipo === 'TDC') {
@@ -1030,9 +1143,31 @@
         secTipoGasto.classList.add('hidden');
         tipoGastoEsFijo = false;
         resetCuotas();
+
+        // Verificar si estamos en los últimos 5 días del mes en curso
+        const hoy = new Date();
+        const diasEnMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+        const diaActual = hoy.getDate();
+        const ultimosCincoDias = diaActual >= (diasEnMes - 4);
+
+        if (ultimosCincoDias) {
+          const infoTdc = tdcFechasMap[id];
+          let textoCorte = "Esta tarjeta está próxima a su fecha de cierre.";
+          if (infoTdc && infoTdc.fecha_corte) {
+            const fParts = infoTdc.fecha_corte.split('-');
+            textoCorte = `Esta tarjeta tiene fecha de corte configurada el día ${fParts[2]}/${fParts[1]}. Si esperas al cierre, el gasto entrará recién en el resumen del próximo mes.`;
+          } else {
+            textoCorte = `Atención: Estamos en los últimos días del mes. Si la tarjeta ya cerró, este gasto corresponderá al próximo mes.`;
+          }
+          document.getElementById('alerta-tdc-texto').innerText = textoCorte;
+          alertaCorte.classList.remove('hidden');
+        } else {
+          alertaCorte.classList.add('hidden');
+        }
       } else {
         secCuotas.classList.add('hidden');
         secTipoGasto.classList.remove('hidden');
+        alertaCorte.classList.add('hidden');
         cuotasSeleccionadas = 1;
         resetTipoGasto();
       }
@@ -1111,7 +1246,7 @@
       actualizarDistribuidores();
     }
 
-    // 5. COMPARTIDO EDITABLE
+    // 6. COMPARTIDO EDITABLE
     function handleDestinoChange(tipo) {
       const panelEditable = document.getElementById('panel-editable');
       if (tipo === 'editable') {
@@ -1182,7 +1317,7 @@
       return cuadra;
     }
 
-    // 6. GUARDAR GASTO
+    // 7. GUARDAR GASTO
     async function guardarGasto(e) {
       e.preventDefault();
       const editId = document.getElementById('gasto-edit-id').value;
@@ -1352,6 +1487,7 @@
       document.getElementById('panel-editable').classList.add('hidden');
       document.getElementById('seccion-cuotas').classList.add('hidden');
       document.getElementById('seccion-tipo-gasto').classList.remove('hidden');
+      document.getElementById('alerta-tdc-corte').classList.add('hidden');
       cuotasSeleccionadas = 1;
       resetTipoGasto();
     }
@@ -1377,7 +1513,7 @@
       }
     }
 
-    // 7. CARGA DE LIQUIDACIÓN Y RESÚMENES (ORDEN: HISTORIAL ARRIBA, RESÚMENES ABAJO)
+    // 8. CARGA DE LIQUIDACIÓN Y RESÚMENES CON FECHAS DE TDC
     async function cargarGastos() {
       const { data, error } = await sbClient
         .from('gastos')
@@ -1566,6 +1702,7 @@
       if (fijosCount === 0) contFijos.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos fijos</div>';
       if (varsCount === 0) contVars.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos variables</div>';
 
+      // RENDERIZAR RESÚMENES DE TARJETAS (CON FECHAS DE CORTE Y VTO ABAJO DE TDC Y NOMBRE)
       const listaCards = Object.values(resumenesTarjetas);
       document.getElementById('count-resumenes-tarjetas').innerText = listaCards.length;
 
@@ -1575,6 +1712,20 @@
         listaCards.forEach(t => {
           const cardDiv = document.createElement('div');
           cardDiv.className = "bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-2.5 shadow-sm";
+
+          let fechasHTML = '';
+          if (t.medio.tipo === 'TDC') {
+            const infoFechas = tdcFechasMap[t.id] || {};
+            const corteTxt = infoFechas.fecha_corte ? infoFechas.fecha_corte.split('-').reverse().join('/') : 'Sin corte';
+            const vtoTxt = infoFechas.fecha_vencimiento ? infoFechas.fecha_vencimiento.split('-').reverse().join('/') : 'Sin vto';
+            fechasHTML = `
+              <div class="text-[10px] text-slate-400 mt-1 flex items-center space-x-2">
+                <span><strong class="text-slate-300">Corte:</strong> ${corteTxt}</span>
+                <span>•</span>
+                <span><strong class="text-slate-300">Vto:</strong> ${vtoTxt}</span>
+              </div>
+            `;
+          }
 
           let consumosHTML = '';
           t.consumos.forEach(c => {
@@ -1601,6 +1752,7 @@
                   <span class="text-[9px] px-1.5 py-0.2 rounded-md font-semibold ${t.medio.titular === 'Leandro' ? 'bg-blue-500/20 text-blue-300' : 'bg-rose-500/20 text-rose-300'}">${t.medio.titular}</span>
                 </div>
                 <span class="text-[10px] text-slate-400 block mt-0.5">${t.medio.tipo}</span>
+                ${fechasHTML}
               </div>
               <div class="text-right">
                 <span class="text-[10px] text-slate-400 block font-medium">Total Resumen:</span>
@@ -1669,7 +1821,7 @@
       await cargarGastos();
     }
 
-    // 8. MODAL TOTAL DE PAGOS
+    // 9. MODAL TOTAL DE PAGOS
     function abrirModalTotalPagos() {
       const data = window.clearingCalculado || { totalLeandro: 0, totalMaria: 0, terceros: [] };
       const diff = data.totalLeandro - data.totalMaria;
