@@ -36,11 +36,15 @@
     
     <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-xl z-50 text-xs transition-all"></div>
 
-    <!-- Barra Superior -->
-    <header class="bg-slate-900/80 backdrop-blur-md px-5 pt-4 pb-3 border-b border-slate-800 flex justify-between items-center z-10">
+    <!-- Barra Superior con Selector de Mes Dinámico -->
+    <header class="bg-slate-900/80 backdrop-blur-md px-5 pt-3 pb-3 border-b border-slate-800 flex justify-between items-center z-10">
       <div>
-        <span id="label-periodo" class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Octubre 2026</span>
-        <h1 class="text-lg font-bold text-white tracking-tight">Finanzas del Hogar</h1>
+        <div class="flex items-center space-x-1">
+          <select id="select-mes-activo" onchange="cambiarMesActivo(this.value)" class="bg-slate-950 text-emerald-400 font-bold text-xs uppercase tracking-wider py-1 px-2 rounded-lg border border-slate-800 focus:outline-none cursor-pointer">
+            <!-- Renderizado dinámico de meses -->
+          </select>
+        </div>
+        <h1 class="text-base font-bold text-white tracking-tight mt-0.5">Finanzas del Hogar</h1>
       </div>
       <div class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-full border border-slate-700/60 text-xs">
         <span class="text-slate-400">TC:</span>
@@ -49,7 +53,7 @@
     </header>
 
     <!-- Banner Proporcional Dinámico -->
-    <section class="bg-slate-900 px-5 py-2.5 border-b border-slate-800/60 flex items-center justify-between text-xs">
+    <section class="bg-slate-900 px-5 py-2 border-b border-slate-800/60 flex items-center justify-between text-xs">
       <div class="flex items-center space-x-2">
         <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
         <span class="text-slate-300 font-medium">Leandro: <strong id="ratio-lean" class="text-white">50.0%</strong></span>
@@ -119,7 +123,7 @@
             <div id="cuota-resumen-proyeccion" class="text-[11px] text-emerald-400 font-medium pt-1 hidden"></div>
           </div>
 
-          <!-- Entidad de Destino -->
+          <!-- Destino del Gasto -->
           <div>
             <label class="block text-xs font-medium text-slate-400 mb-1.5">¿De quién es el gasto? <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2 text-xs">
@@ -163,7 +167,7 @@
             </div>
           </div>
 
-          <!-- PANEL COMPARTIDO EDITABLE EXTENDIDO -->
+          <!-- Panel Compartido Editable (Inicia en Blanco) -->
           <div id="panel-editable" class="hidden bg-slate-900/90 border border-cyan-500/40 p-3.5 rounded-2xl space-y-3">
             <div class="flex justify-between items-center text-xs">
               <span class="font-semibold text-cyan-400">Distribución de Responsables</span>
@@ -176,14 +180,13 @@
               <!-- Leandro -->
               <div class="flex items-center space-x-2">
                 <span class="w-16 text-slate-300 font-medium">Leandro:</span>
-                <input type="number" step="any" id="part-leandro" oninput="validarSumaEditable()" placeholder="0" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-blue-400 font-bold focus:outline-none focus:border-cyan-500">
+                <input type="number" step="any" id="part-leandro" oninput="validarSumaEditable()" placeholder="Indicar monto" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-blue-400 font-bold focus:outline-none focus:border-cyan-500">
               </div>
               <!-- María -->
               <div class="flex items-center space-x-2">
                 <span class="w-16 text-slate-300 font-medium">María:</span>
-                <input type="number" step="any" id="part-maria" oninput="validarSumaEditable()" placeholder="0" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-rose-400 font-bold focus:outline-none focus:border-cyan-500">
+                <input type="number" step="any" id="part-maria" oninput="validarSumaEditable()" placeholder="Indicar monto" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-rose-400 font-bold focus:outline-none focus:border-cyan-500">
               </div>
-              <!-- Terceros directos insertados aquí -->
               <div id="participantes-extras" class="space-y-2"></div>
             </div>
 
@@ -218,7 +221,7 @@
       <!-- PESTAÑA 2: LIQUIDACIÓN -->
       <div id="tab-clearing" class="space-y-4">
         <div class="flex justify-between items-center">
-          <h2 class="text-base font-semibold text-white">Liquidación de Octubre</h2>
+          <h2 id="titulo-liquidacion-mes" class="text-base font-semibold text-white">Liquidación</h2>
           <button onclick="abrirModalTotalPagos()" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition shadow-sm">
             <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Total de Pagos
           </button>
@@ -251,7 +254,7 @@
           </div>
         </div>
 
-        <!-- Historial en 2 Columnas: Gastos Fijos y Gastos Variables -->
+        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
           <div class="grid grid-cols-2 gap-2 text-xs">
@@ -399,14 +402,12 @@
           <button onclick="modalTotalPagos(false)" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
-        <!-- Transferencia Pareja Neta -->
         <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
           <span class="text-xs text-slate-400 block font-medium">Liquidación Neta de Pareja:</span>
           <div id="modal-clearing-texto" class="text-sm font-bold text-white">Calculando...</div>
           <div id="modal-clearing-monto" class="text-2xl font-black text-emerald-400">$0 <span class="text-xs font-normal text-slate-400">ARS</span></div>
         </div>
 
-        <!-- Cuentas por Cobrar a Terceros con Responsable de Cobro -->
         <div class="space-y-2">
           <span class="text-xs font-bold text-slate-300 block">Montos a Cobrar a Terceros:</span>
           <div id="modal-lista-externos" class="max-h-48 overflow-y-auto hide-scrollbar space-y-1.5 text-xs">
@@ -491,6 +492,24 @@
     let ingresosData = [];
     let gastosCache = [];
 
+    // GESTIÓN DE MESES DINÁMICOS
+    let mesActivo = "2026-10";
+    let cantidadMesesVisibles = 3;
+    const baseMeses = [
+      { key: "2026-10", label: "Octubre 2026" },
+      { key: "2026-11", label: "Noviembre 2026" },
+      { key: "2026-12", label: "Diciembre 2026" },
+      { key: "2027-01", label: "Enero 2027" },
+      { key: "2027-02", label: "Febrero 2027" },
+      { key: "2027-03", label: "Marzo 2027" },
+      { key: "2027-04", label: "Abril 2027" },
+      { key: "2027-05", label: "Mayo 2027" },
+      { key: "2027-06", label: "Junio 2027" },
+      { key: "2027-07", label: "Julio 2027" },
+      { key: "2027-08", label: "Agosto 2027" },
+      { key: "2027-09", label: "Septiembre 2027" }
+    ];
+
     let nuevoIngresoUser = null;
     let nuevoIngresoMoneda = null;
     let nuevoIngresoEsFijo = null;
@@ -509,16 +528,67 @@
     });
 
     async function init() {
+      renderSelectorMeses();
       await cargarConfigTC();
       await cargarIngresos();
       await cargarMediosPago();
       await cargarGastos();
     }
 
+    // SELECTOR DE MESES
+    function renderSelectorMeses() {
+      const sel = document.getElementById('select-mes-activo');
+      sel.innerHTML = '';
+
+      const visibles = baseMeses.slice(0, cantidadMesesVisibles);
+      visibles.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.key;
+        opt.innerText = m.label;
+        if (m.key === mesActivo) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      if (cantidadMesesVisibles < baseMeses.length) {
+        const optMas = document.createElement('option');
+        optMas.value = "VER_MAS";
+        optMas.innerText = "➕ Ver más meses...";
+        sel.appendChild(optMas);
+      }
+
+      actualizarTitulosMes();
+    }
+
+    function cambiarMesActivo(val) {
+      if (val === "VER_MAS") {
+        cantidadMesesVisibles = Math.min(baseMeses.length, cantidadMesesVisibles + 3);
+        renderSelectorMeses();
+        document.getElementById('select-mes-activo').value = mesActivo;
+        return;
+      }
+      mesActivo = val;
+      actualizarTitulosMes();
+      cargarConfigTC();
+      cargarIngresos();
+      cargarGastos();
+    }
+
+    function actualizarTitulosMes() {
+      const mesObj = baseMeses.find(m => m.key === mesActivo);
+      const label = mesObj ? mesObj.label : mesActivo;
+      document.getElementById('titulo-liquidacion-mes').innerText = `Liquidación de ${label}`;
+    }
+
+    function diffMeses(mesOrigen, mesDestino) {
+      const [y1, m1] = mesOrigen.split('-').map(Number);
+      const [y2, m2] = mesDestino.split('-').map(Number);
+      return (y2 - y1) * 12 + (m2 - m1);
+    }
+
     // 1. CONFIGURACIÓN Y TC
     async function cargarConfigTC() {
       try {
-        const { data } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', '2026-10').maybeSingle();
+        const { data } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', mesActivo).maybeSingle();
         if (data && data.tipo_cambio) {
           tcActual = parseFloat(data.tipo_cambio);
           document.getElementById('cfg-tc').value = tcActual;
@@ -531,7 +601,7 @@
       const num = parseFloat(val) || 1;
       tcActual = num;
       document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
-      await sbClient.from('configuracion_mes').upsert({ mes_anio: '2026-10', tipo_cambio: tcActual });
+      await sbClient.from('configuracion_mes').upsert({ mes_anio: mesActivo, tipo_cambio: tcActual });
       renderIngresos();
       calcularRatiosAutomaticos();
     }
@@ -539,7 +609,7 @@
     // 2. INGRESOS
     async function cargarIngresos() {
       try {
-        const { data } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', '2026-10');
+        const { data } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', mesActivo);
         ingresosData = data || [];
         renderIngresos();
         calcularRatiosAutomaticos();
@@ -681,7 +751,7 @@
         error = res.error;
       } else {
         const res = await sbClient.from('fuentes_ingreso').insert([{
-          mes_imputacion: '2026-10',
+          mes_imputacion: mesActivo,
           titular: nuevoIngresoUser,
           concepto,
           monto,
@@ -887,9 +957,10 @@
       const box = document.getElementById('cuota-resumen-proyeccion');
       if (cuotasSeleccionadas && cuotasSeleccionadas > 1 && total > 0) {
         const valorCuota = total / cuotasSeleccionadas;
-        const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-        const d = new Date(2026, 9, 1);
+        const [anio, mes] = mesActivo.split('-').map(Number);
+        const d = new Date(anio, mes - 1, 1);
         d.setMonth(d.getMonth() + cuotasSeleccionadas - 1);
+        const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         const finTexto = `${meses[d.getMonth()]} ${d.getFullYear()}`;
 
         box.innerHTML = `<i class="fa-solid fa-clock-rotate-left mr-1"></i> $${Math.round(valorCuota).toLocaleString()}/mes (1/${cuotasSeleccionadas}) • Finaliza en: ${finTexto}`;
@@ -900,18 +971,20 @@
       actualizarDistribuidores();
     }
 
-    // 5. COMPARTIDO EDITABLE Y FILA DIRECTA TERCEROS
+    // 5. COMPARTIDO EDITABLE (INICIA EN BLANCO)
     function handleDestinoChange(tipo) {
       const panelEditable = document.getElementById('panel-editable');
       if (tipo === 'editable') {
         panelEditable.classList.remove('hidden');
-        actualizarDistribuidores();
+        // Inicializar en blanco con placeholder
+        document.getElementById('part-leandro').value = '';
+        document.getElementById('part-maria').value = '';
+        validarSumaEditable();
       } else {
         panelEditable.classList.add('hidden');
       }
     }
 
-    // Fila directa de Tercero sin prompt
     function agregarFilaTerceroDirecta(nombrePre = '', montoPre = '', cobradorPre = '') {
       const cont = document.getElementById('participantes-extras');
       const div = document.createElement('div');
@@ -919,7 +992,7 @@
       div.innerHTML = `
         <div class="flex items-center space-x-1.5">
           <input type="text" placeholder="Nombre (ej. Sebas, Negocio)" value="${nombrePre}" class="input-extra-nombre flex-1 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-amber-400 font-medium text-xs focus:outline-none focus:border-cyan-500">
-          <input type="number" step="any" placeholder="Monto ($)" value="${montoPre}" oninput="validarSumaEditable()" class="no-spin input-extra-monto w-24 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-white font-bold text-xs focus:outline-none focus:border-cyan-500">
+          <input type="number" step="any" placeholder="Indicar monto" value="${montoPre}" oninput="validarSumaEditable()" class="no-spin input-extra-monto w-24 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-white font-bold text-xs focus:outline-none focus:border-cyan-500">
           <button type="button" onclick="this.closest('.participante-extra-item').remove(); validarSumaEditable();" class="text-rose-400 p-1 hover:text-rose-300">
             <i class="fa-solid fa-xmark text-sm"></i>
           </button>
@@ -938,16 +1011,8 @@
     }
 
     function actualizarDistribuidores() {
-      const total = parseFloat(document.getElementById('input-monto').value) || 0;
       const isEditable = document.querySelector('input[name="destino"]:checked')?.value === 'editable';
       if (!isEditable) return;
-
-      const pLean = document.getElementById('part-leandro');
-      const pMaria = document.getElementById('part-maria');
-      if (!pLean.value && !pMaria.value && total > 0) {
-        pLean.value = (total / 2).toFixed(2);
-        pMaria.value = (total - parseFloat(pLean.value)).toFixed(2);
-      }
       validarSumaEditable();
     }
 
@@ -1060,7 +1125,7 @@
 
       let error = null;
       const payload = {
-        mes_imputacion: '2026-10',
+        mes_imputacion: mesActivo,
         concepto,
         monto_total: montoTotal,
         monto_cuota: montoMes,
@@ -1147,12 +1212,34 @@
       resetTipoGasto();
     }
 
-    // 7. CARGA DE LIQUIDACIÓN, SUMATORIAS BRUTAS E HISTORIAL
+    // 7. TRASLADAR GASTO AL SIGUIENTE MES
+    async function trasladarAlSiguienteMes(id) {
+      if (!confirm('¿Trasladar este gasto y sus cuotas al mes siguiente?')) return;
+      
+      const g = gastosCache.find(x => x.id === id);
+      if (!g) return;
+
+      const idx = baseMeses.findIndex(m => m.key === g.mes_imputacion);
+      if (idx === -1 || idx + 1 >= baseMeses.length) {
+        return alert('No hay un mes siguiente registrado disponible en el sistema.');
+      }
+
+      const proximoMesKey = baseMeses[idx + 1].key;
+      const { error } = await sbClient.from('gastos').update({ mes_imputacion: proximoMesKey }).eq('id', id);
+      if (error) {
+        alert('Error al trasladar: ' + error.message);
+      } else {
+        showToast(`Gasto trasladado a ${baseMeses[idx + 1].label}`);
+        await cargarGastos();
+      }
+    }
+
+    // 8. CARGA DE LIQUIDACIÓN CON PROYECCIÓN MULTIMES
     async function cargarGastos() {
+      // Traer todos los gastos registrados para proyectar fijos y cuotas
       const { data, error } = await sbClient
         .from('gastos')
         .select('*, medios_pago(nombre, titular, tipo)')
-        .eq('mes_imputacion', '2026-10')
         .order('created_at', { ascending: false });
 
       if (error || !data) return;
@@ -1170,8 +1257,37 @@
       let fijosCount = 0, varsCount = 0;
 
       data.forEach(g => {
-        const montoMes = g.monto_cuota || (g.monto_total / (g.cuotas_totales || 1));
+        const titularTarjeta = g.medios_pago ? g.medios_pago.titular : 'Leandro';
+        const esTDC = g.medios_pago && g.medios_pago.tipo === 'TDC';
+        const cuotasTotales = g.cuotas_totales || 1;
+        const offsetMeses = diffMeses(g.mes_imputacion, mesActivo);
 
+        let aplicaEnEsteMes = false;
+        let cuotaActual = 1;
+
+        if (g.es_fijo) {
+          // Gasto fijo se traslada a todos los meses (desde su mes de origen en adelante)
+          if (offsetMeses >= 0) {
+            aplicaEnEsteMes = true;
+          }
+        } else if (esTDC && cuotasTotales > 1) {
+          // Cuotas activas según offset
+          if (offsetMeses >= 0 && offsetMeses < cuotasTotales) {
+            aplicaEnEsteMes = true;
+            cuotaActual = offsetMeses + 1;
+          }
+        } else {
+          // Variable tradicional: solo en su mes exacto
+          if (offsetMeses === 0) {
+            aplicaEnEsteMes = true;
+          }
+        }
+
+        if (!aplicaEnEsteMes) return;
+
+        const montoMes = g.monto_cuota || (g.monto_total / cuotasTotales);
+
+        // Sumatoria bruta de responsabilidades
         (g.distribucion || []).forEach(part => {
           const m = parseFloat(part.monto) || 0;
           if (part.responsable === 'Leandro') {
@@ -1188,6 +1304,16 @@
           }
         });
 
+        // Verificar si fue cargado los últimos 5 días del mes para habilitar botón de traslado
+        let showBotonSiguienteMes = false;
+        if (esTDC && g.created_at) {
+          const fechaGasto = new Date(g.created_at);
+          const dia = fechaGasto.getDate();
+          if (dia >= 26) {
+            showBotonSiguienteMes = true;
+          }
+        }
+
         // Fila Historial Acordeón
         const item = document.createElement('div');
         item.className = "bg-slate-900 border border-slate-800 rounded-xl overflow-hidden";
@@ -1202,6 +1328,8 @@
           `;
         });
 
+        const badgeCuota = cuotasTotales > 1 ? `${cuotaActual}/${cuotasTotales}` : (g.es_fijo ? 'Fijo' : 'Var');
+
         item.innerHTML = `
           <div onclick="toggleDesplegableGasto('${g.id}')" class="p-2.5 cursor-pointer flex justify-between items-start space-x-1">
             <div class="truncate">
@@ -1211,7 +1339,7 @@
             <div class="text-right shrink-0 flex items-center space-x-1">
               <div>
                 <span class="font-bold text-white block text-[11px]">$${Math.round(montoMes).toLocaleString()}</span>
-                <span class="text-[9px] text-slate-500 block">${g.cuotas_totales > 1 ? `1/${g.cuotas_totales}` : (g.es_fijo ? 'Fijo' : 'Var')}</span>
+                <span class="text-[9px] text-slate-500 block">${badgeCuota}</span>
               </div>
               <i id="flecha-${g.id}" class="fa-solid fa-chevron-down text-[10px] text-slate-500 transition-transform duration-200 ml-1"></i>
             </div>
@@ -1222,6 +1350,16 @@
               <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">Participación mensual:</span>
               ${desgloseHTML}
             </div>
+
+            ${showBotonSiguienteMes ? `
+              <div class="pt-1">
+                <button onclick="trasladarAlSiguienteMes('${g.id}')" class="w-full bg-amber-500/20 text-amber-300 border border-amber-500/30 py-1 rounded text-[10px] font-bold hover:bg-amber-500/30 flex items-center justify-center space-x-1">
+                  <i class="fa-solid fa-forward"></i>
+                  <span>Gasto del siguiente mes (Cierre TDC)</span>
+                </button>
+              </div>
+            ` : ''}
+
             <div class="border-t border-slate-800/60 pt-2 flex justify-between items-center">
               <span class="text-[10px] text-slate-400">Total: $${parseFloat(g.monto_total).toLocaleString()}</span>
               <div class="flex space-x-1.5">
@@ -1251,11 +1389,9 @@
       if (fijosCount === 0) contFijos.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos fijos</div>';
       if (varsCount === 0) contVars.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos variables</div>';
 
-      // Actualizar Columnas con sumatoria bruta
       document.getElementById('clearing-col-lean').innerText = `$${Math.round(totalPagaLeandroBruto).toLocaleString()} ARS`;
       document.getElementById('clearing-col-maria').innerText = `$${Math.round(totalPagaMariaBruto).toLocaleString()} ARS`;
 
-      // Guardar para modal Total de Pagos
       window.clearingCalculado = {
         totalLeandro: totalPagaLeandroBruto,
         totalMaria: totalPagaMariaBruto,
@@ -1277,7 +1413,7 @@
       await cargarGastos();
     }
 
-    // 8. MODAL TOTAL DE PAGOS (DIFERENCIA Y LISTA CON COBRADOR)
+    // 9. MODAL TOTAL DE PAGOS
     function abrirModalTotalPagos() {
       const data = window.clearingCalculado || { totalLeandro: 0, totalMaria: 0, terceros: [] };
       const diff = data.totalLeandro - data.totalMaria;
