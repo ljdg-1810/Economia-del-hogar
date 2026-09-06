@@ -18,12 +18,12 @@
   <!-- Configuración Supabase -->
   <script>
     const SUPABASE_URL = "https://taitqlkmdcqpkscgaxoo.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_uNovfH0FSBIZ3UVEUKEgKA_ny9Ssyj8"; // <-- Pega aquí tu sb_publishable_...
+    const SUPABASE_ANON_KEY = "sb_publishable_uNovfH0FSBIZ3UVEUKEgKA_ny9Ssyj8"; // <-- Pega tu Publishable Key aquí
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
 
   <!-- Marco Móvil -->
-  <div class="w-full max-w-md bg-slate-950 min-h-screen sm:min-h-[840px] sm:max-h-[840px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-800">
+  <div class="w-full max-w-md bg-slate-950 min-h-screen sm:min-h-[850px] sm:max-h-[850px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-800">
     
     <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-xl z-50 text-xs transition-all"></div>
 
@@ -39,15 +39,15 @@
       </div>
     </header>
 
-    <!-- Banner Proporcional -->
+    <!-- Banner Proporcional Dinámico -->
     <section class="bg-slate-900 px-5 py-2.5 border-b border-slate-800/60 flex items-center justify-between text-xs">
       <div class="flex items-center space-x-2">
         <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
-        <span class="text-slate-300 font-medium">Leandro: <strong id="ratio-lean" class="text-white">50.8%</strong></span>
+        <span class="text-slate-300 font-medium">Leandro: <strong id="ratio-lean" class="text-white">50.0%</strong></span>
       </div>
       <div class="flex items-center space-x-2">
         <span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block"></span>
-        <span class="text-slate-300 font-medium">María: <strong id="ratio-maria" class="text-white">49.2%</strong></span>
+        <span class="text-slate-300 font-medium">María: <strong id="ratio-maria" class="text-white">50.0%</strong></span>
       </div>
       <button onclick="switchTab('config')" class="text-slate-400 hover:text-white transition">
         <i class="fa-solid fa-gear"></i>
@@ -61,38 +61,62 @@
       <div id="tab-cargar" class="space-y-4">
         <div class="flex justify-between items-center">
           <h2 class="text-base font-semibold text-white">Anotar Nuevo Gasto</h2>
-          <span id="db-status" class="text-xs text-amber-400">Verificando...</span>
+          <span id="db-status" class="text-xs text-amber-400">Conectando...</span>
         </div>
 
         <form id="form-gasto" onsubmit="guardarGasto(event)" class="space-y-3.5">
+          <!-- Monto Obligatorio -->
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Monto Total (ARS)</label>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Monto Total (ARS) <span class="text-rose-500">*</span></label>
             <div class="relative">
               <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
-              <input type="number" id="input-monto" oninput="actualizarSplitEditable()" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-4 py-2.5 text-lg font-bold text-white focus:outline-none focus:border-blue-500">
+              <input type="number" step="any" id="input-monto" oninput="actualizarDistribuidores()" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-4 py-2.5 text-lg font-bold text-white focus:outline-none focus:border-blue-500">
             </div>
           </div>
 
+          <!-- Concepto Obligatorio -->
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Concepto</label>
-            <input type="text" id="input-concepto" required placeholder="Ej. Alquiler, Cena, Fravega..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            <label class="block text-xs font-medium text-slate-400 mb-1">Concepto <span class="text-rose-500">*</span></label>
+            <input type="text" id="input-concepto" required placeholder="Ej. Alquiler, Cena, Zapatillas..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
           </div>
 
+          <!-- Medio de Pago Obligatorio -->
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="text-xs font-medium text-slate-400">Medio de Pago / Tarjeta</label>
-              <button type="button" onclick="agregarTarjeta()" class="text-[11px] text-blue-400 hover:underline">+ Nueva</button>
+              <label class="text-xs font-medium text-slate-400">Medio de Pago <span class="text-rose-500">*</span></label>
+              <button type="button" onclick="modalNuevoMedioPago(true)" class="text-[11px] text-blue-400 hover:underline">+ Configurar Medios</button>
             </div>
-            <select id="select-tarjeta" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="">Cargando tarjetas...</option>
+            <select id="select-tarjeta" required onchange="handleMedioPagoChange()" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+              <option value="">Selecciona medio de pago...</option>
             </select>
           </div>
 
+          <!-- Sección Cuotas (Aparece justo debajo del Medio de Pago solo si es TDC) -->
+          <div id="seccion-cuotas" class="hidden bg-slate-900/70 p-3 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400 font-medium">Opciones de Financiación (TDC)</span>
+              <span id="label-cuotas-seleccionadas" class="text-blue-400 font-bold">1 cuota</span>
+            </div>
+            <!-- Botones de cuotas -->
+            <div class="grid grid-cols-5 gap-1.5">
+              <button type="button" onclick="setCuotas(1)" class="btn-cuota py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold">1</button>
+              <button type="button" onclick="setCuotas(3)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">3</button>
+              <button type="button" onclick="setCuotas(6)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">6</button>
+              <button type="button" onclick="setCuotas(12)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">12</button>
+              <button type="button" onclick="setCuotas(18)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">18</button>
+            </div>
+            <div class="flex items-center space-x-2 pt-1">
+              <span class="text-[11px] text-slate-400">Otro:</span>
+              <input type="number" id="input-cuotas-custom" min="1" max="60" placeholder="Editar cuotas" oninput="setCuotasCustom(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500">
+            </div>
+          </div>
+
+          <!-- Entidad de Destino -->
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1.5">¿De quién es el gasto?</label>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">¿De quién es el gasto? <span class="text-rose-500">*</span></label>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <label class="cursor-pointer">
-                <input type="radio" name="destino" value="prorrateo" checked onchange="toggleCustomSplit(false)" class="peer sr-only">
+                <input type="radio" name="destino" value="prorrateo" checked onchange="handleDestinoChange('prorrateo')" class="peer sr-only">
                 <div class="p-2 rounded-xl border border-slate-800 bg-slate-900 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 text-center font-medium transition">
                   <i class="fa-solid fa-scale-balanced mb-1 block text-blue-400"></i>
                   Prorrateo (% Sueldos)
@@ -100,7 +124,7 @@
               </label>
 
               <label class="cursor-pointer">
-                <input type="radio" name="destino" value="mitad" onchange="toggleCustomSplit(false)" class="peer sr-only">
+                <input type="radio" name="destino" value="mitad" onchange="handleDestinoChange('mitad')" class="peer sr-only">
                 <div class="p-2 rounded-xl border border-slate-800 bg-slate-900 peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 text-center font-medium transition">
                   <i class="fa-solid fa-divide mb-1 block text-emerald-400"></i>
                   Compartido (50 / 50)
@@ -108,71 +132,59 @@
               </label>
 
               <label class="cursor-pointer col-span-2">
-                <input type="radio" name="destino" value="editable" onchange="toggleCustomSplit(true)" class="peer sr-only">
+                <input type="radio" name="destino" value="editable" onchange="handleDestinoChange('editable')" class="peer sr-only">
                 <div class="p-2.5 rounded-xl border border-slate-800 bg-slate-900 peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10 text-center font-medium transition flex items-center justify-center space-x-2">
                   <i class="fa-solid fa-pen-to-square text-cyan-400"></i>
-                  <span>Compartido Editable (Monto libre c/u)</span>
+                  <span>Compartido Editable (Monto libre c/u o terceros)</span>
                 </div>
               </label>
 
               <label class="cursor-pointer">
-                <input type="radio" name="destino" value="leandro" onchange="toggleCustomSplit(false)" class="peer sr-only">
+                <input type="radio" name="destino" value="leandro" onchange="handleDestinoChange('leandro')" class="peer sr-only">
                 <div class="p-2 rounded-xl border border-slate-800 bg-slate-900 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/10 text-center font-medium transition">
                   100% Leandro
                 </div>
               </label>
 
               <label class="cursor-pointer">
-                <input type="radio" name="destino" value="maria" onchange="toggleCustomSplit(false)" class="peer sr-only">
+                <input type="radio" name="destino" value="maria" onchange="handleDestinoChange('maria')" class="peer sr-only">
                 <div class="p-2 rounded-xl border border-slate-800 bg-slate-900 peer-checked:border-rose-400 peer-checked:bg-rose-400/10 text-center font-medium transition">
                   100% María
                 </div>
               </label>
-
-              <label class="cursor-pointer">
-                <input type="radio" name="destino" value="negocio" onchange="toggleCustomSplit(false)" class="peer sr-only">
-                <div class="p-2 rounded-xl border border-slate-800 bg-slate-900 peer-checked:border-amber-500 peer-checked:bg-amber-500/10 text-center font-medium transition">
-                  <i class="fa-solid fa-briefcase mr-1 text-amber-400"></i> Emprendimiento
-                </div>
-              </label>
-
-              <label class="cursor-pointer">
-                <input type="radio" name="destino" value="tercero" onchange="toggleCustomSplit(false)" class="peer sr-only">
-                <div class="p-2 rounded-xl border border-slate-800 bg-slate-900 peer-checked:border-purple-500 peer-checked:bg-purple-500/10 text-center font-medium transition">
-                  <i class="fa-solid fa-user-group mr-1 text-purple-400"></i> Tercero
-                </div>
-              </label>
             </div>
           </div>
 
-          <!-- Panel Editable -->
-          <div id="panel-editable" class="hidden bg-slate-900/90 border border-cyan-500/30 p-3.5 rounded-2xl space-y-3">
+          <!-- PANEL COMPARTIDO EDITABLE EXTENDIDO CON BOTÓN (+) -->
+          <div id="panel-editable" class="hidden bg-slate-900/90 border border-cyan-500/40 p-3.5 rounded-2xl space-y-3">
             <div class="flex justify-between items-center text-xs">
-              <span class="font-semibold text-cyan-400">Distribución personalizada</span>
-              <span id="label-diferencia" class="text-[11px] text-slate-400">Total asignado: $0</span>
+              <span class="font-semibold text-cyan-400">Distribución de Responsables</span>
+              <button type="button" onclick="agregarParticipanteExtra()" class="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-lg border border-cyan-500/30 hover:bg-cyan-500/30 transition">
+                <i class="fa-solid fa-plus mr-1"></i> Agregar (Tercero / Negocio)
+              </button>
             </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-[11px] text-slate-400 mb-1">Paga Leandro ($)</label>
-                <input type="number" id="split-leandro" oninput="syncSplit('leandro')" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-sm text-blue-400 font-bold focus:outline-none focus:border-cyan-500">
-              </div>
-              <div>
-                <label class="block text-[11px] text-slate-400 mb-1">Paga María ($)</label>
-                <input type="number" id="split-maria" oninput="syncSplit('maria')" placeholder="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-sm text-rose-400 font-bold focus:outline-none focus:border-cyan-500">
-              </div>
-            </div>
-          </div>
 
-          <!-- Cuotas -->
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Cuotas</label>
-            <select id="select-cuotas" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
-              <option value="1">1 pago (Contado / Débito / 1 Cuota)</option>
-              <option value="3">3 cuotas</option>
-              <option value="6">6 cuotas</option>
-              <option value="12">12 cuotas</option>
-              <option value="18">18 cuotas</option>
-            </select>
+            <!-- Lista de Responsables Dinámica -->
+            <div id="contenedor-participantes" class="space-y-2 text-xs">
+              <!-- Leandro -->
+              <div class="flex items-center space-x-2">
+                <span class="w-24 text-slate-300 font-medium">Leandro:</span>
+                <input type="number" step="any" id="part-leandro" oninput="validarSumaEditable()" placeholder="0" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-blue-400 font-bold focus:outline-none focus:border-cyan-500">
+              </div>
+              <!-- María -->
+              <div class="flex items-center space-x-2">
+                <span class="w-24 text-slate-300 font-medium">María:</span>
+                <input type="number" step="any" id="part-maria" oninput="validarSumaEditable()" placeholder="0" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-rose-400 font-bold focus:outline-none focus:border-cyan-500">
+              </div>
+              <!-- Terceros y Negocio se insertan aquí -->
+              <div id="participantes-extras" class="space-y-2"></div>
+            </div>
+
+            <!-- Indicador de Suma y Validación -->
+            <div class="border-t border-slate-800 pt-2 flex justify-between items-center text-[11px]">
+              <span id="label-suma-editable" class="text-slate-400">Total: $0 / Asignado: $0</span>
+              <span id="tag-editable-estado" class="text-rose-400 font-bold">Descuadrado</span>
+            </div>
           </div>
 
           <button type="submit" id="btn-submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-blue-600/20 active:scale-[0.99]">
@@ -181,53 +193,123 @@
         </form>
       </div>
 
-      <!-- PESTAÑA 2: CLEARING / LIQUIDACIÓN -->
+      <!-- PESTAÑA 2: LIQUIDACIÓN -->
       <div id="tab-clearing" class="hidden space-y-4">
-        <h2 class="text-base font-semibold text-white">Liquidación del Mes</h2>
+        <h2 class="text-base font-semibold text-white">Liquidación de Octubre</h2>
         
+        <!-- Tarjeta de Transferencia Neta -->
         <div class="bg-gradient-to-br from-slate-900 to-slate-850 p-4 rounded-2xl border border-slate-800 space-y-3">
           <div class="flex items-center justify-between text-xs text-slate-400">
             <span>Clearing de Pareja</span>
-            <span class="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-md font-medium">Automático</span>
+            <span class="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-md font-medium">Balance</span>
           </div>
           <div class="py-1">
-            <span class="text-xs text-slate-400 block">Transferencia calculada:</span>
-            <div id="clearing-titulo" class="text-lg font-bold text-white mt-0.5">Calculando saldos...</div>
+            <span class="text-xs text-slate-400 block">Transferencia requerida:</span>
+            <div id="clearing-titulo" class="text-base font-bold text-white mt-0.5">Calculando...</div>
             <div id="clearing-monto" class="text-2xl font-black text-emerald-400 mt-1">$0 <span class="text-xs font-normal text-slate-400">ARS</span></div>
           </div>
         </div>
 
+        <!-- Cuentas Externas (Terceros / Negocio) -->
         <div class="space-y-2">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Gastos Registrados</h3>
-          <div id="lista-gastos" class="space-y-2 text-xs">
-            <div class="text-slate-500 text-center py-4">Cargando registros...</div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Cuentas por Cobrar Externas</h3>
+          <div id="lista-externos" class="space-y-2 text-xs">
+            <div class="text-slate-500 text-center py-2">Sin externos pendientes.</div>
           </div>
+        </div>
+
+        <!-- Historial -->
+        <div class="space-y-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
+          <div id="lista-gastos" class="space-y-2 text-xs"></div>
         </div>
       </div>
 
-      <!-- PESTAÑA 3: CONFIGURACIÓN -->
+      <!-- PESTAÑA 3: CONFIGURACIÓN DINÁMICA DE INGRESOS Y TC -->
       <div id="tab-config" class="hidden space-y-4">
-        <h2 class="text-base font-semibold text-white">Parámetros del Mes</h2>
+        <div class="flex justify-between items-center">
+          <h2 class="text-base font-semibold text-white">Parámetros e Ingresos</h2>
+          <span class="text-xs text-emerald-400">Auto-cálculo</span>
+        </div>
         
-        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3 text-xs">
-          <div>
-            <label class="block text-slate-400 mb-1">Dólar Liquidación (1 al 10)</label>
-            <input type="number" id="cfg-tc" value="1580" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-bold focus:outline-none">
+        <!-- Tipo de Cambio -->
+        <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+          <label class="block text-xs font-medium text-slate-400">Dólar Liquidación del Mes (ARS/USD)</label>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-emerald-400 font-bold">$</span>
+            <input type="number" id="cfg-tc" step="any" value="1580" oninput="actualizarTC(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-sm text-emerald-400 font-bold focus:outline-none focus:border-blue-500">
           </div>
-          <div>
-            <label class="block text-slate-400 mb-1">Sueldo Base Leandro (ARS)</label>
-            <input type="number" id="cfg-lean-fijo" value="2612650" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none">
+        </div>
+
+        <!-- Ingresos Desglosados Leandro -->
+        <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="text-xs font-bold text-blue-400">Ingresos Leandro</span>
+              <span id="total-lean-display" class="block text-xs text-slate-400">Total computable: $0</span>
+            </div>
+            <button onclick="promptNuevoIngreso('Leandro')" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-lg border border-blue-500/30 hover:bg-blue-500/30 transition">
+              + Agregar Concepto
+            </button>
           </div>
-          <div>
-            <label class="block text-slate-400 mb-1">Sueldo Base María (USD)</label>
-            <input type="number" id="cfg-maria-usd" value="1600" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none">
+          <div id="lista-ingresos-leandro" class="space-y-2 text-xs"></div>
+        </div>
+
+        <!-- Ingresos Desglosados María -->
+        <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="text-xs font-bold text-rose-400">Ingresos María</span>
+              <span id="total-maria-display" class="block text-xs text-slate-400">Total computable: $0</span>
+            </div>
+            <button onclick="promptNuevoIngreso('María')" class="text-xs bg-rose-500/20 text-rose-300 px-2 py-1 rounded-lg border border-rose-500/30 hover:bg-rose-500/30 transition">
+              + Agregar Concepto
+            </button>
           </div>
-          <button onclick="guardarConfiguracion()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition">
-            Actualizar Parámetros
-          </button>
+          <div id="lista-ingresos-maria" class="space-y-2 text-xs"></div>
         </div>
       </div>
     </main>
+
+    <!-- Modal para Medios de Pago -->
+    <div id="modal-medios" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 w-full max-w-sm space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold text-white">Configurar Medios de Pago</h3>
+          <button onclick="modalNuevoMedioPago(false)" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <form onsubmit="guardarNuevoMedioPago(event)" class="space-y-3 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">Nombre</label>
+            <input type="text" id="medio-nombre" required placeholder="Ej. Visa Santander, Efectivo..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Titular / Responsable</label>
+            <select id="medio-titular" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none">
+              <option value="Leandro">Leandro</option>
+              <option value="María">María</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Categoría</label>
+            <select id="medio-tipo" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none">
+              <option value="TDC">TDC (Tarjeta de Crédito - Habilita Cuotas)</option>
+              <option value="Efectivo/Sueldo">Efectivo / Sueldo</option>
+              <option value="Billetera/Cuenta">Billetera / Cuenta Bancaria</option>
+            </select>
+          </div>
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition">
+            Crear Medio de Pago
+          </button>
+        </form>
+
+        <div class="border-t border-slate-800 pt-3 space-y-2">
+          <span class="text-xs font-semibold text-slate-400 block">Medios Existentes</span>
+          <div id="lista-medios-modal" class="max-h-40 overflow-y-auto hide-scrollbar space-y-1.5 text-xs"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Barra Inferior -->
     <nav class="bg-slate-900 border-t border-slate-800 px-6 py-2 flex justify-between items-center text-xs">
@@ -247,8 +329,12 @@
   </div>
 
   <script>
-    let ratioLeandro = 0.508;
-    let ratioMaria = 0.492;
+    let ratioLeandro = 0.5;
+    let ratioMaria = 0.5;
+    let tcActual = 1580;
+    let cuotasSeleccionadas = 1;
+    let tarjetasData = [];
+    let ingresosData = [];
 
     function showToast(msg) {
       const t = document.getElementById('toast');
@@ -258,111 +344,322 @@
     }
 
     async function init() {
-      await cargarTarjetas();
+      await cargarConfigTC();
+      await cargarIngresos();
+      await cargarMediosPago();
       await cargarGastos();
     }
 
-    async function cargarTarjetas() {
-      const select = document.getElementById('select-tarjeta');
-      const status = document.getElementById('db-status');
+    // 1. CARGA Y SINCRONIZACIÓN DE TC Y SUELDOS DESGLOSADOS
+    async function cargarConfigTC() {
       try {
-        const { data, error } = await sbClient.from('medios_pago').select('*').order('nombre');
-        if (error || !data) {
-          status.innerText = 'Error conexión';
-          status.className = 'text-xs text-rose-400';
-          return;
+        const { data } = await sbClient.from('configuracion_mes').select('*').eq('mes_anio', '2026-10').maybeSingle();
+        if (data && data.tipo_cambio) {
+          tcActual = parseFloat(data.tipo_cambio);
+          document.getElementById('cfg-tc').value = tcActual;
+          document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
         }
-        status.innerText = 'Conectado';
-        status.className = 'text-xs text-emerald-400';
-        select.innerHTML = '';
-        data.forEach(t => {
-          const opt = document.createElement('option');
-          opt.value = t.id;
-          opt.innerText = `${t.nombre} (${t.titular})`;
-          select.appendChild(opt);
-        });
-      } catch (err) {
+      } catch (err) { console.error(err); }
+    }
+
+    async function actualizarTC(val) {
+      const num = parseFloat(val) || 1;
+      tcActual = num;
+      document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
+      await sbClient.from('configuracion_mes').upsert({ mes_anio: '2026-10', tipo_cambio: tcActual });
+      calcularRatiosAutomaticos();
+    }
+
+    async function cargarIngresos() {
+      try {
+        const { data } = await sbClient.from('fuentes_ingreso').select('*').eq('mes_imputacion', '2026-10');
+        ingresosData = data || [];
+        renderIngresos();
+        calcularRatiosAutomaticos();
+      } catch (err) { console.error(err); }
+    }
+
+    function renderIngresos() {
+      const contLean = document.getElementById('lista-ingresos-leandro');
+      const contMaria = document.getElementById('lista-ingresos-maria');
+      contLean.innerHTML = '';
+      contMaria.innerHTML = '';
+
+      ingresosData.forEach(item => {
+        const row = document.createElement('div');
+        row.className = "flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800";
+        row.innerHTML = `
+          <div>
+            <span class="font-medium text-white">${item.concepto}</span>
+            <span class="block text-[10px] text-slate-500">${item.moneda} • ${item.es_computable ? 'Computable' : 'Extra'}</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-slate-200">${item.moneda === 'USD' ? 'USD ' : '$'}${parseFloat(item.monto).toLocaleString()}</span>
+            <button onclick="eliminarIngreso('${item.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+        if (item.titular === 'Leandro') contLean.appendChild(row);
+        else contMaria.appendChild(row);
+      });
+    }
+
+    async function promptNuevoIngreso(titular) {
+      const concepto = prompt(`Concepto del ingreso para ${titular} (ej. Sueldo, Nubiz, Cuidar Perros):`);
+      if (!concepto) return;
+      const monto = parseFloat(prompt('Monto:'));
+      if (isNaN(monto) || monto <= 0) return alert('Monto no válido');
+      const moneda = confirm('¿Es en dólares (USD)? Aceptar = USD, Cancelar = ARS') ? 'USD' : 'ARS';
+      const es_computable = confirm('¿Entra en el porcentaje de prorrateo? Aceptar = Sí, Cancelar = No (Extra)');
+
+      await sbClient.from('fuentes_ingreso').insert([{
+        mes_imputacion: '2026-10',
+        titular,
+        concepto,
+        monto,
+        moneda,
+        es_computable
+      }]);
+      await cargarIngresos();
+    }
+
+    async function eliminarIngreso(id) {
+      if (!confirm('¿Eliminar este ingreso?')) return;
+      await sbClient.from('fuentes_ingreso').delete().eq('id', id);
+      await cargarIngresos();
+    }
+
+    function calcularRatiosAutomaticos() {
+      let totalLeanArs = 0;
+      let totalMariaArs = 0;
+
+      ingresosData.filter(i => i.es_computable).forEach(i => {
+        const valorEnArs = i.moneda === 'USD' ? i.monto * tcActual : i.monto;
+        if (i.titular === 'Leandro') totalLeanArs += valorEnArs;
+        else totalMariaArs += valorEnArs;
+      });
+
+      const totalHogar = totalLeanArs + totalMariaArs;
+      if (totalHogar > 0) {
+        ratioLeandro = totalLeanArs / totalHogar;
+        ratioMaria = totalMariaArs / totalHogar;
+      } else {
+        ratioLeandro = 0.5;
+        ratioMaria = 0.5;
+      }
+
+      document.getElementById('ratio-lean').innerText = `${(ratioLeandro * 100).toFixed(1)}%`;
+      document.getElementById('ratio-maria').innerText = `${(ratioMaria * 100).toFixed(1)}%`;
+      document.getElementById('total-lean-display').innerText = `Computable: $${Math.round(totalLeanArs).toLocaleString()} ARS`;
+      document.getElementById('total-maria-display').innerText = `Computable: $${Math.round(totalMariaArs).toLocaleString()} ARS`;
+    }
+
+    // 2. MEDIOS DE PAGO (CATEGORÍAS Y TITULAR)
+    async function cargarMediosPago() {
+      const select = document.getElementById('select-tarjeta');
+      const listModal = document.getElementById('lista-medios-modal');
+      const status = document.getElementById('db-status');
+      
+      const { data, error } = await sbClient.from('medios_pago').select('*').order('nombre');
+      if (error || !data) {
         status.innerText = 'Sin conexión';
         status.className = 'text-xs text-rose-400';
-      }
-    }
-
-    async function agregarTarjeta() {
-      const nombre = prompt('Nombre del nuevo medio de pago (ej. Galicia Visa):');
-      if (!nombre) return;
-      const titular = prompt('¿De quién es la tarjeta? Escribe "Leandro" o "María":');
-      if (titular !== 'Leandro' && titular !== 'María') {
-        alert('Titular no válido.');
         return;
       }
-      const { error } = await sbClient.from('medios_pago').insert([{ nombre, titular }]);
-      if (!error) {
-        showToast('Tarjeta creada');
-        cargarTarjetas();
+
+      status.innerText = 'Conectado';
+      status.className = 'text-xs text-emerald-400';
+      tarjetasData = data;
+      
+      select.innerHTML = '<option value="">Selecciona medio de pago...</option>';
+      listModal.innerHTML = '';
+
+      data.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.innerText = `${t.nombre} (${t.titular} - ${t.tipo})`;
+        select.appendChild(opt);
+
+        const row = document.createElement('div');
+        row.className = "flex justify-between items-center p-1.5 bg-slate-950 rounded border border-slate-800";
+        row.innerHTML = `
+          <span>${t.nombre} <strong class="text-slate-400">(${t.titular} / ${t.tipo})</strong></span>
+          <button onclick="eliminarMedioPago('${t.id}')" class="text-rose-400"><i class="fa-solid fa-trash"></i></button>
+        `;
+        listModal.appendChild(row);
+      });
+      handleMedioPagoChange();
+    }
+
+    function modalNuevoMedioPago(show) {
+      document.getElementById('modal-medios').classList.toggle('hidden', !show);
+    }
+
+    async function guardarNuevoMedioPago(e) {
+      e.preventDefault();
+      const nombre = document.getElementById('medio-nombre').value;
+      const titular = document.getElementById('medio-titular').value;
+      const tipo = document.getElementById('medio-tipo').value;
+
+      await sbClient.from('medios_pago').insert([{ nombre, titular, tipo }]);
+      document.getElementById('medio-nombre').value = '';
+      modalNuevoMedioPago(false);
+      await cargarMediosPago();
+      showToast('Medio de pago creado');
+    }
+
+    async function eliminarMedioPago(id) {
+      if (!confirm('¿Eliminar este medio de pago?')) return;
+      await sbClient.from('medios_pago').delete().eq('id', id);
+      await cargarMediosPago();
+    }
+
+    // 3. SECCIÓN CUOTAS CONDICIONAL
+    function handleMedioPagoChange() {
+      const id = document.getElementById('select-tarjeta').value;
+      const secCuotas = document.getElementById('seccion-cuotas');
+      const medio = tarjetasData.find(t => t.id === id);
+
+      if (medio && medio.tipo === 'TDC') {
+        secCuotas.classList.remove('hidden');
+      } else {
+        secCuotas.classList.add('hidden');
+        setCuotas(1);
       }
     }
 
-    function toggleCustomSplit(show) {
-      document.getElementById('panel-editable').classList.toggle('hidden', !show);
-      if (show) actualizarSplitEditable();
+    function setCuotas(n) {
+      cuotasSeleccionadas = parseInt(n);
+      document.getElementById('label-cuotas-seleccionadas').innerText = `${cuotasSeleccionadas} cuota${cuotasSeleccionadas > 1 ? 's' : ''}`;
+      document.querySelectorAll('.btn-cuota').forEach(btn => {
+        if (parseInt(btn.innerText) === cuotasSeleccionadas) {
+          btn.className = 'btn-cuota py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold';
+        } else {
+          btn.className = 'btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold';
+        }
+      });
     }
 
-    function actualizarSplitEditable() {
-      const total = parseFloat(document.getElementById('input-monto').value) || 0;
-      const inputLean = document.getElementById('split-leandro');
-      const inputMaria = document.getElementById('split-maria');
-      if (!inputLean.value && !inputMaria.value && total > 0) {
-        inputLean.value = (total / 2).toFixed(0);
-        inputMaria.value = (total - parseFloat(inputLean.value)).toFixed(0);
+    function setCuotasCustom(val) {
+      const n = parseInt(val);
+      if (n > 0) setCuotas(n);
+    }
+
+    // 4. DESTINOS Y COMPARTIDO EDITABLE CON (+)
+    function handleDestinoChange(tipo) {
+      const panelEditable = document.getElementById('panel-editable');
+      if (tipo === 'editable') {
+        panelEditable.classList.remove('hidden');
+        actualizarDistribuidores();
+      } else {
+        panelEditable.classList.add('hidden');
       }
-      actualizarLabelSplit();
     }
 
-    function syncSplit(origen) {
+    function agregarParticipanteExtra() {
+      const nombre = prompt('Nombre del responsable (ej. Tercero: Sebas, Emprendimiento Logística):');
+      if (!nombre) return;
+      
+      const cont = document.getElementById('participantes-extras');
+      const div = document.createElement('div');
+      div.className = "flex items-center space-x-2 participante-extra-item";
+      div.dataset.nombre = nombre;
+      div.innerHTML = `
+        <span class="w-24 text-amber-400 font-medium truncate">${nombre}:</span>
+        <input type="number" step="any" oninput="validarSumaEditable()" placeholder="0" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-amber-400 font-bold focus:outline-none focus:border-cyan-500">
+        <button type="button" onclick="this.parentElement.remove(); validarSumaEditable();" class="text-rose-400 p-1"><i class="fa-solid fa-xmark"></i></button>
+      `;
+      cont.appendChild(div);
+      validarSumaEditable();
+    }
+
+    function actualizarDistribuidores() {
       const total = parseFloat(document.getElementById('input-monto').value) || 0;
-      const l = document.getElementById('split-leandro');
-      const m = document.getElementById('split-maria');
-      if (total > 0) {
-        if (origen === 'leandro') m.value = Math.max(0, total - (parseFloat(l.value) || 0));
-        else l.value = Math.max(0, total - (parseFloat(m.value) || 0));
+      const isEditable = document.querySelector('input[name="destino"]:checked').value === 'editable';
+      if (!isEditable) return;
+
+      const pLean = document.getElementById('part-leandro');
+      const pMaria = document.getElementById('part-maria');
+      if (!pLean.value && !pMaria.value && total > 0) {
+        pLean.value = (total / 2).toFixed(2);
+        pMaria.value = (total - parseFloat(pLean.value)).toFixed(2);
       }
-      actualizarLabelSplit();
+      validarSumaEditable();
     }
 
-    function actualizarLabelSplit() {
+    function validarSumaEditable() {
       const total = parseFloat(document.getElementById('input-monto').value) || 0;
-      const l = parseFloat(document.getElementById('split-leandro').value) || 0;
-      const m = parseFloat(document.getElementById('split-maria').value) || 0;
-      document.getElementById('label-diferencia').innerText = `Asignado: $${(l+m).toLocaleString()} / $${total.toLocaleString()}`;
+      let suma = 0;
+
+      const vLean = parseFloat(document.getElementById('part-leandro').value) || 0;
+      const vMaria = parseFloat(document.getElementById('part-maria').value) || 0;
+      suma += vLean + vMaria;
+
+      document.querySelectorAll('#participantes-extras input').forEach(inp => {
+        suma += parseFloat(inp.value) || 0;
+      });
+
+      const label = document.getElementById('label-suma-editable');
+      const tag = document.getElementById('tag-editable-estado');
+      label.innerText = `Total: $${total.toLocaleString()} / Asignado: $${suma.toLocaleString()}`;
+
+      const cuadra = Math.abs(total - suma) < 0.05 && total > 0;
+      if (cuadra) {
+        tag.innerText = 'Cuadrado';
+        tag.className = 'text-emerald-400 font-bold';
+      } else {
+        tag.innerText = 'Descuadrado';
+        tag.className = 'text-rose-400 font-bold';
+      }
+      return cuadra;
     }
 
+    // 5. GUARDAR GASTO CON VALIDACIÓN ESTRICTA
     async function guardarGasto(e) {
       e.preventDefault();
+      const monto = parseFloat(document.getElementById('input-monto').value);
+      const concepto = document.getElementById('input-concepto').value.trim();
+      const medio_pago_id = document.getElementById('select-tarjeta').value;
+      const destino = document.querySelector('input[name="destino"]:checked').value;
+
+      if (!monto || monto <= 0) return alert('El monto es obligatorio y debe ser mayor a 0');
+      if (!concepto) return alert('El concepto es obligatorio');
+      if (!medio_pago_id) return alert('Debes seleccionar un medio de pago');
+
+      let distribucion = [];
+
+      if (destino === 'prorrateo') {
+        distribucion = [
+          { responsable: 'Leandro', monto: monto * ratioLeandro },
+          { responsable: 'María', monto: monto * ratioMaria }
+        ];
+      } else if (destino === 'mitad') {
+        distribucion = [
+          { responsable: 'Leandro', monto: monto / 2 },
+          { responsable: 'María', monto: monto / 2 }
+        ];
+      } else if (destino === 'leandro') {
+        distribucion = [{ responsable: 'Leandro', monto: monto }];
+      } else if (destino === 'maria') {
+        distribucion = [{ responsable: 'María', monto: monto }];
+      } else if (destino === 'editable') {
+        if (!validarSumaEditable()) {
+          alert('Error: La suma de la distribución manual NO coincide exactamente con el monto total.');
+          return;
+        }
+        const vLean = parseFloat(document.getElementById('part-leandro').value) || 0;
+        const vMaria = parseFloat(document.getElementById('part-maria').value) || 0;
+        if (vLean > 0) distribucion.push({ responsable: 'Leandro', monto: vLean });
+        if (vMaria > 0) distribucion.push({ responsable: 'María', monto: vMaria });
+
+        document.querySelectorAll('.participante-extra-item').forEach(item => {
+          const m = parseFloat(item.querySelector('input').value) || 0;
+          if (m > 0) distribucion.push({ responsable: item.dataset.nombre, monto: m });
+        });
+      }
+
       const btn = document.getElementById('btn-submit');
       btn.disabled = true;
       btn.innerText = 'Guardando...';
-
-      const monto = parseFloat(document.getElementById('input-monto').value);
-      const concepto = document.getElementById('input-concepto').value;
-      const medio_pago_id = document.getElementById('select-tarjeta').value;
-      const destino = document.querySelector('input[name="destino"]:checked').value;
-      const cuotas = parseInt(document.getElementById('select-cuotas').value);
-
-      let mLean = 0, mMaria = 0;
-      if (destino === 'prorrateo') {
-        mLean = monto * ratioLeandro;
-        mMaria = monto * ratioMaria;
-      } else if (destino === 'mitad') {
-        mLean = monto / 2;
-        mMaria = monto / 2;
-      } else if (destino === 'editable') {
-        mLean = parseFloat(document.getElementById('split-leandro').value) || 0;
-        mMaria = parseFloat(document.getElementById('split-maria').value) || 0;
-      } else if (destino === 'leandro') {
-        mLean = monto;
-      } else if (destino === 'maria') {
-        mMaria = monto;
-      }
 
       const { error } = await sbClient.from('gastos').insert([{
         mes_imputacion: '2026-10',
@@ -370,9 +667,8 @@
         monto_total: monto,
         medio_pago_id,
         tipo_destino: destino,
-        monto_leandro: mLean,
-        monto_maria: mMaria,
-        cuotas_totales: cuotas
+        cuotas_totales: cuotasSeleccionadas,
+        distribucion
       }]);
 
       btn.disabled = false;
@@ -381,52 +677,97 @@
       if (error) {
         alert('Error: ' + error.message);
       } else {
-        showToast('¡Gasto registrado!');
+        showToast('¡Gasto registrado con éxito!');
         e.target.reset();
-        toggleCustomSplit(false);
+        document.getElementById('participantes-extras').innerHTML = '';
+        handleDestinoChange('prorrateo');
+        handleMedioPagoChange();
         await cargarGastos();
       }
     }
 
+    // 6. HISTORIAL Y CLEARING
     async function cargarGastos() {
       const lista = document.getElementById('lista-gastos');
-      try {
-        const { data, error } = await sbClient
-          .from('gastos')
-          .select('*, medios_pago(nombre, titular)')
-          .eq('mes_imputacion', '2026-10')
-          .order('created_at', { ascending: false });
+      const listaExt = document.getElementById('lista-externos');
+      
+      const { data, error } = await sbClient
+        .from('gastos')
+        .select('*, medios_pago(nombre, titular, tipo)')
+        .eq('mes_imputacion', '2026-10')
+        .order('created_at', { ascending: false });
 
-        if (error || !data) return;
-        if (data.length === 0) {
-          lista.innerHTML = '<div class="text-slate-500 text-center py-4">No hay gastos anotados aún.</div>';
-          return;
-        }
+      if (error || !data) return;
 
-        lista.innerHTML = '';
-        data.forEach(g => {
+      let debeLeanAMaria = 0;
+      let debeMariaALean = 0;
+      let externos = [];
+
+      lista.innerHTML = '';
+      data.forEach(g => {
+        const titularTarjeta = g.medios_pago ? g.medios_pago.titular : 'Leandro';
+        
+        // Liquidación
+        (g.distribucion || []).forEach(part => {
+          if (part.responsable === 'Leandro' && titularTarjeta === 'María') {
+            debeLeanAMaria += parseFloat(part.monto);
+          } else if (part.responsable === 'María' && titularTarjeta === 'Leandro') {
+            debeMariaALean += parseFloat(part.monto);
+          } else if (part.responsable !== 'Leandro' && part.responsable !== 'María') {
+            externos.push({ quien: part.responsable, monto: part.monto, concepto: g.concepto });
+          }
+        });
+
+        // Item Historial
+        const div = document.createElement('div');
+        div.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center";
+        div.innerHTML = `
+          <div>
+            <div class="text-sm font-semibold text-white">${g.concepto}</div>
+            <div class="text-[11px] text-slate-400">${g.medios_pago ? g.medios_pago.nombre : ''} • ${g.tipo_destino}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm font-bold text-white">$${parseFloat(g.monto_total).toLocaleString()}</div>
+            <div class="text-[10px] text-slate-500">${g.cuotas_totales > 1 ? g.cuotas_totales + ' cuotas' : '1 pago'}</div>
+          </div>
+        `;
+        lista.appendChild(div);
+      });
+
+      // Render Clearing
+      const diff = debeLeanAMaria - debeMariaALean;
+      const clTitulo = document.getElementById('clearing-titulo');
+      const clMonto = document.getElementById('clearing-monto');
+
+      if (diff > 0) {
+        clTitulo.innerText = 'Leandro transfiere a María:';
+        clMonto.innerHTML = `$${Math.round(diff).toLocaleString()} <span class="text-xs font-normal text-slate-400">ARS</span>`;
+      } else if (diff < 0) {
+        clTitulo.innerText = 'María transfiere a Leandro:';
+        clMonto.innerHTML = `$${Math.round(Math.abs(diff)).toLocaleString()} <span class="text-xs font-normal text-slate-400">ARS</span>`;
+      } else {
+        clTitulo.innerText = 'Cuentas perfectamente equilibradas';
+        clMonto.innerHTML = `$0 <span class="text-xs font-normal text-slate-400">ARS</span>`;
+      }
+
+      // Render Externos
+      listaExt.innerHTML = '';
+      if (externos.length === 0) {
+        listaExt.innerHTML = '<div class="text-slate-500 text-center py-2">Sin externos pendientes.</div>';
+      } else {
+        externos.forEach(x => {
           const div = document.createElement('div');
-          div.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center";
+          div.className = "bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center";
           div.innerHTML = `
             <div>
-              <div class="text-sm font-semibold text-white">${g.concepto}</div>
-              <div class="text-[11px] text-slate-400">${g.medios_pago ? g.medios_pago.nombre : 'Tarjeta'} • ${g.tipo_destino}</div>
+              <span class="font-semibold text-amber-400">${x.quien}</span>
+              <span class="block text-[10px] text-slate-500">${x.concepto}</span>
             </div>
-            <div class="text-right">
-              <div class="text-sm font-bold text-white">$${parseFloat(g.monto_total).toLocaleString()}</div>
-              <div class="text-[10px] text-slate-500">${g.cuotas_totales > 1 ? g.cuotas_totales + ' cuotas' : '1 pago'}</div>
-            </div>
+            <span class="font-bold text-white">$${parseFloat(x.monto).toLocaleString()}</span>
           `;
-          lista.appendChild(div);
+          listaExt.appendChild(div);
         });
-      } catch (err) {
-        console.error(err);
       }
-    }
-
-    function guardarConfiguracion() {
-      showToast('Parámetros guardados');
-      switchTab('cargar');
     }
 
     function switchTab(tab) {
