@@ -288,13 +288,8 @@
         </div>
       </div>
 
-      <!-- PESTAÑA 3: TDC Y SEGUIMIENTO -->
+      <!-- PESTAÑA 3: TDC Y SEGUIMIENTO (SIN TÍTULO DUPLICADO ARRIBA) -->
       <div id="tab-tdc-seguimiento" class="hidden space-y-4">
-        <div class="flex justify-between items-center">
-          <h2 id="titulo-tdc-mes" class="text-base font-semibold text-white">TDC y Seguimiento</h2>
-          <span class="text-[10px] text-slate-400 font-medium">Control de cuentas</span>
-        </div>
-
         <!-- 1. VENCIMIENTOS Y RESÚMENES BANCARIOS -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">
@@ -669,7 +664,6 @@
       const mesObj = baseMeses.find(m => m.key === mesActivo);
       const label = mesObj ? mesObj.label : mesActivo;
       document.getElementById('titulo-liquidacion-mes').innerText = `Liquidación de ${label}`;
-      document.getElementById('titulo-tdc-mes').innerText = `TDC y Seguimiento (${label})`;
 
       const mesActualObj = baseMeses.find(m => m.key === mesActualReal) || { label: "OCTUBRE 2026" };
       document.getElementById('label-mes-actual-estatico').innerText = mesActualObj.label.toUpperCase();
@@ -1781,6 +1775,44 @@
       if (fijosCount === 0) contFijos.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos fijos</div>';
       if (varsCount === 0) contVars.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos variables</div>';
 
+      // RENDERIZAR PANEL DE SEGUIMIENTO Y COBRO DE TERCEROS
+      const pendientesCount = listaTercerosACobrar.filter(t => t.estado === 'pendiente').length;
+      document.getElementById('badge-pendientes-terceros').innerText = `${pendientesCount} pendiente${pendientesCount !== 1 ? 's' : ''}`;
+
+      if (listaTercerosACobrar.length === 0) {
+        contTerceros.innerHTML = '<div class="text-slate-500 text-center py-3 bg-slate-900/40 rounded-2xl border border-slate-800">No hay cuentas por cobrar a terceros este mes.</div>';
+      } else {
+        listaTercerosACobrar.forEach(t => {
+          const isCobrado = t.estado === 'cobrado';
+          const cardT = document.createElement('div');
+          cardT.className = `p-3 rounded-2xl border transition-all flex justify-between items-center ${isCobrado ? 'bg-slate-950/60 border-emerald-500/30 opacity-75' : 'bg-slate-900 border-slate-800 shadow-sm'}`;
+
+          cardT.innerHTML = `
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-1.5">
+                <span class="font-bold text-white text-xs">${t.nombre}</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold ${isCobrado ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}">
+                  ${isCobrado ? 'Cobrado' : 'Pendiente'}
+                </span>
+              </div>
+              <span class="text-[10px] text-slate-400 block">${t.concepto} • ${t.medioPago}</span>
+              <span class="text-[10px] text-slate-300 block">Cobra: <strong class="${t.cobrador === 'Leandro' ? 'text-blue-400' : 'text-rose-400'}">${t.cobrador}</strong></span>
+            </div>
+
+            <div class="text-right space-y-1.5 shrink-0">
+              <span class="text-sm font-black ${isCobrado ? 'text-slate-400 line-through' : 'text-emerald-400'} block">
+                $${Math.round(t.monto).toLocaleString()}
+              </span>
+              <button onclick="toggleEstadoCobroTercero('${t.gastoId}', '${t.nombre}', '${t.cobrador}', ${t.monto})" class="px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${isCobrado ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' : 'bg-emerald-600/30 text-emerald-300 border-emerald-500/40 hover:bg-emerald-600/50'}">
+                <i class="fa-solid ${isCobrado ? 'fa-rotate-left mr-1' : 'fa-check mr-1'}"></i>
+                ${isCobrado ? 'Desmarcar' : 'Marcar Cobrado'}
+              </button>
+            </div>
+          `;
+          contTerceros.appendChild(cardT);
+        });
+      }
+
       // RENDERIZAR RESÚMENES DE TARJETAS
       const listaCards = Object.values(resumenesTarjetas);
       document.getElementById('count-resumenes-tarjetas').innerText = listaCards.length;
@@ -1866,44 +1898,6 @@
           `;
 
           contTarjetas.appendChild(cardDiv);
-        });
-      }
-
-      // RENDERIZAR PANEL DE SEGUIMIENTO Y COBRO DE TERCEROS
-      const pendientesCount = listaTercerosACobrar.filter(t => t.estado === 'pendiente').length;
-      document.getElementById('badge-pendientes-terceros').innerText = `${pendientesCount} pendiente${pendientesCount !== 1 ? 's' : ''}`;
-
-      if (listaTercerosACobrar.length === 0) {
-        contTerceros.innerHTML = '<div class="text-slate-500 text-center py-3 bg-slate-900/40 rounded-2xl border border-slate-800">No hay cuentas por cobrar a terceros este mes.</div>';
-      } else {
-        listaTercerosACobrar.forEach(t => {
-          const isCobrado = t.estado === 'cobrado';
-          const cardT = document.createElement('div');
-          cardT.className = `p-3 rounded-2xl border transition-all flex justify-between items-center ${isCobrado ? 'bg-slate-950/60 border-emerald-500/30 opacity-75' : 'bg-slate-900 border-slate-800 shadow-sm'}`;
-
-          cardT.innerHTML = `
-            <div class="space-y-0.5">
-              <div class="flex items-center space-x-1.5">
-                <span class="font-bold text-white text-xs">${t.nombre}</span>
-                <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold ${isCobrado ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}">
-                  ${isCobrado ? 'Cobrado' : 'Pendiente'}
-                </span>
-              </div>
-              <span class="text-[10px] text-slate-400 block">${t.concepto} • ${t.medioPago}</span>
-              <span class="text-[10px] text-slate-300 block">Cobra: <strong class="${t.cobrador === 'Leandro' ? 'text-blue-400' : 'text-rose-400'}">${t.cobrador}</strong></span>
-            </div>
-
-            <div class="text-right space-y-1.5 shrink-0">
-              <span class="text-sm font-black ${isCobrado ? 'text-slate-400 line-through' : 'text-emerald-400'} block">
-                $${Math.round(t.monto).toLocaleString()}
-              </span>
-              <button onclick="toggleEstadoCobroTercero('${t.gastoId}', '${t.nombre}', '${t.cobrador}', ${t.monto})" class="px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${isCobrado ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' : 'bg-emerald-600/30 text-emerald-300 border-emerald-500/40 hover:bg-emerald-600/50'}">
-                <i class="fa-solid ${isCobrado ? 'fa-rotate-left mr-1' : 'fa-check mr-1'}"></i>
-                ${isCobrado ? 'Desmarcar' : 'Marcar Cobrado'}
-              </button>
-            </div>
-          `;
-          contTerceros.appendChild(cardT);
         });
       }
 
