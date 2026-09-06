@@ -15,20 +15,19 @@
 </head>
 <body class="bg-slate-900 flex justify-center items-center min-h-screen p-0 sm:p-4 font-sans text-slate-100">
 
-  <!-- Configuración Supabase -->
+  <!-- Configuración Supabase Fija -->
   <script>
     const SUPABASE_URL = "https://taitqlkmdcqpkscgaxoo.supabase.co";
-    // Si necesitas cambiar la clave la editas aquí abajo:
-    const SUPABASE_ANON_KEY = window.localStorage.getItem('sb_key') || "";
-    let supabase = null;
-    if (SUPABASE_ANON_KEY) {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
+    const SUPABASE_ANON_KEY = "sb_publishable_uNovfH0FSBIZ3UVEUKEgKA_ny9Ssyj8"; // <-- Pega aquí tu sb_publishable_...
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
 
   <!-- Marco Móvil -->
   <div class="w-full max-w-md bg-slate-950 min-h-screen sm:min-h-[840px] sm:max-h-[840px] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-800">
     
+    <!-- Notificación flotante -->
+    <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 font-bold px-4 py-2 rounded-xl shadow-xl z-50 text-xs transition-all"></div>
+
     <!-- Barra Superior -->
     <header class="bg-slate-900/80 backdrop-blur-md px-5 pt-4 pb-3 border-b border-slate-800 flex justify-between items-center z-10">
       <div>
@@ -63,7 +62,7 @@
       <div id="tab-cargar" class="space-y-4">
         <div class="flex justify-between items-center">
           <h2 class="text-base font-semibold text-white">Anotar Nuevo Gasto</h2>
-          <span id="db-status" class="text-xs text-slate-500">Conectando...</span>
+          <span id="db-status" class="text-xs text-amber-400">Verificando...</span>
         </div>
 
         <form id="form-gasto" onsubmit="guardarGasto(event)" class="space-y-3.5">
@@ -209,19 +208,23 @@
 
       <!-- PESTAÑA 3: CONFIGURACIÓN -->
       <div id="tab-config" class="hidden space-y-4">
-        <h2 class="text-base font-semibold text-white">Conexión y Parámetros</h2>
+        <h2 class="text-base font-semibold text-white">Parámetros del Mes</h2>
         
         <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3 text-xs">
-          <div>
-            <label class="block text-slate-400 mb-1">Supabase Publishable Key</label>
-            <input type="password" id="cfg-apikey" placeholder="Pega aquí sb_publishable_..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none">
-          </div>
           <div>
             <label class="block text-slate-400 mb-1">Dólar Liquidación (1 al 10)</label>
             <input type="number" id="cfg-tc" value="1580" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-bold focus:outline-none">
           </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Sueldo Base Leandro (ARS)</label>
+            <input type="number" id="cfg-lean-fijo" value="2612650" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Sueldo Base María (USD)</label>
+            <input type="number" id="cfg-maria-usd" value="1600" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-bold focus:outline-none">
+          </div>
           <button onclick="guardarConfiguracion()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition">
-            Guardar Configuración
+            Actualizar Parámetros
           </button>
         </div>
       </div>
@@ -248,53 +251,44 @@
     let ratioLeandro = 0.508;
     let ratioMaria = 0.492;
 
-    async function init() {
-      const savedKey = window.localStorage.getItem('sb_key');
-      if (savedKey) {
-        document.getElementById('cfg-apikey').value = savedKey;
-        supabase = window.supabase.createClient(SUPABASE_URL, savedKey);
-        await cargarTarjetas();
-        await cargarGastos();
-      } else {
-        document.getElementById('db-status').innerText = 'Falta API Key';
-        switchTab('config');
-      }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2500);
     }
 
-    async function guardarConfiguracion() {
-      const key = document.getElementById('cfg-apikey').value.trim();
-      if (!key) {
-        alert('Por favor ingresa la clave de Supabase');
-        return;
-      }
-      window.localStorage.setItem('sb_key', key);
-      supabase = window.supabase.createClient(SUPABASE_URL, key);
-      alert('Configuración guardada.');
+    async function init() {
       await cargarTarjetas();
       await cargarGastos();
-      switchTab('cargar');
     }
 
     async function cargarTarjetas() {
-      if (!supabase) return;
       const select = document.getElementById('select-tarjeta');
-      const { data, error } = await supabase.from('medios_pago').select('*').order('nombre');
-      if (error) {
-        document.getElementById('db-status').innerText = 'Error al conectar';
-        return;
+      const status = document.getElementById('db-status');
+      try {
+        const { data, error } = await supabase.from('medios_pago').select('*').order('nombre');
+        if (error || !data) {
+          status.innerText = 'Error conexión';
+          status.className = 'text-xs text-rose-400';
+          return;
+        }
+        status.innerText = 'Conectado';
+        status.className = 'text-xs text-emerald-400';
+        select.innerHTML = '';
+        data.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.innerText = `${t.nombre} (${t.titular})`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        status.innerText = 'Sin conexión';
+        status.className = 'text-xs text-rose-400';
       }
-      document.getElementById('db-status').innerText = 'Conectado';
-      select.innerHTML = '';
-      data.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.innerText = `${t.nombre} (${t.titular})`;
-        select.appendChild(opt);
-      });
     }
 
     async function agregarTarjeta() {
-      if (!supabase) return;
       const nombre = prompt('Nombre del nuevo medio de pago (ej. Galicia Visa):');
       if (!nombre) return;
       const titular = prompt('¿De quién es la tarjeta? Escribe "Leandro" o "María":');
@@ -303,7 +297,10 @@
         return;
       }
       const { error } = await supabase.from('medios_pago').insert([{ nombre, titular }]);
-      if (!error) cargarTarjetas();
+      if (!error) {
+        showToast('Tarjeta creada');
+        cargarTarjetas();
+      }
     }
 
     function toggleCustomSplit(show) {
@@ -342,12 +339,6 @@
 
     async function guardarGasto(e) {
       e.preventDefault();
-      if (!supabase) {
-        alert('Configura primero tu clave en Ajustes');
-        switchTab('config');
-        return;
-      }
-
       const btn = document.getElementById('btn-submit');
       btn.disabled = true;
       btn.innerText = 'Guardando...';
@@ -391,7 +382,7 @@
       if (error) {
         alert('Error: ' + error.message);
       } else {
-        alert('¡Gasto guardado correctamente!');
+        showToast('¡Gasto registrado!');
         e.target.reset();
         toggleCustomSplit(false);
         await cargarGastos();
@@ -399,7 +390,6 @@
     }
 
     async function cargarGastos() {
-      if (!supabase) return;
       const lista = document.getElementById('lista-gastos');
       const { data, error } = await supabase
         .from('gastos')
@@ -429,6 +419,11 @@
         `;
         lista.appendChild(div);
       });
+    }
+
+    function guardarConfiguracion() {
+      showToast('Parámetros guardados');
+      switchTab('cargar');
     }
 
     function switchTab(tab) {
