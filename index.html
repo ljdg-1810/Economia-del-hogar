@@ -11,6 +11,16 @@
     body { -webkit-tap-highlight-color: transparent; }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Eliminar flechas de inputs numéricos (Chrome, Safari, Edge, Opera y Firefox) */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
   </style>
 </head>
 <body class="bg-slate-900 flex justify-center items-center min-h-screen p-0 sm:p-4 font-sans text-slate-100">
@@ -70,7 +80,7 @@
             <label class="block text-xs font-medium text-slate-400 mb-1">Monto Total (ARS) <span class="text-rose-500">*</span></label>
             <div class="relative">
               <span class="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
-              <input type="number" step="any" id="input-monto" oninput="actualizarDistribuidores()" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-4 py-2.5 text-lg font-bold text-white focus:outline-none focus:border-blue-500">
+              <input type="number" step="any" id="input-monto" oninput="actualizarDistribuidores()" required placeholder="0.00" class="no-spin w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-4 py-2.5 text-lg font-bold text-white focus:outline-none focus:border-blue-500">
             </div>
           </div>
 
@@ -97,7 +107,6 @@
               <span class="text-slate-400 font-medium">Opciones de Financiación (TDC)</span>
               <span id="label-cuotas-seleccionadas" class="text-blue-400 font-bold">1 cuota</span>
             </div>
-            <!-- Botones de cuotas -->
             <div class="grid grid-cols-5 gap-1.5">
               <button type="button" onclick="setCuotas(1)" class="btn-cuota py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold">1</button>
               <button type="button" onclick="setCuotas(3)" class="btn-cuota py-1.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">3</button>
@@ -107,7 +116,7 @@
             </div>
             <div class="flex items-center space-x-2 pt-1">
               <span class="text-[11px] text-slate-400">Otro:</span>
-              <input type="number" id="input-cuotas-custom" min="1" max="60" placeholder="Editar cuotas" oninput="setCuotasCustom(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500">
+              <input type="number" id="input-cuotas-custom" min="1" max="60" placeholder="Editar cuotas" oninput="setCuotasCustom(this.value)" class="no-spin w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500">
             </div>
           </div>
 
@@ -166,17 +175,14 @@
 
             <!-- Lista de Responsables Dinámica -->
             <div id="contenedor-participantes" class="space-y-2 text-xs">
-              <!-- Leandro -->
               <div class="flex items-center space-x-2">
-                <span class="w-24 text-slate-300 font-medium">Leandro:</span>
-                <input type="number" step="any" id="part-leandro" oninput="validarSumaEditable()" placeholder="0" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-blue-400 font-bold focus:outline-none focus:border-cyan-500">
+                <span class="w-20 text-slate-300 font-medium">Leandro:</span>
+                <input type="number" step="any" id="part-leandro" oninput="validarSumaEditable()" placeholder="0" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-blue-400 font-bold focus:outline-none focus:border-cyan-500">
               </div>
-              <!-- María -->
               <div class="flex items-center space-x-2">
-                <span class="w-24 text-slate-300 font-medium">María:</span>
-                <input type="number" step="any" id="part-maria" oninput="validarSumaEditable()" placeholder="0" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-rose-400 font-bold focus:outline-none focus:border-cyan-500">
+                <span class="w-20 text-slate-300 font-medium">María:</span>
+                <input type="number" step="any" id="part-maria" oninput="validarSumaEditable()" placeholder="0" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-rose-400 font-bold focus:outline-none focus:border-cyan-500">
               </div>
-              <!-- Terceros y Negocio se insertan aquí -->
               <div id="participantes-extras" class="space-y-2"></div>
             </div>
 
@@ -225,53 +231,127 @@
         </div>
       </div>
 
-      <!-- PESTAÑA 3: CONFIGURACIÓN DINÁMICA DE INGRESOS Y TC -->
+      <!-- PESTAÑA 3: PARÁMETROS E INGRESOS (REDISEÑADO CON 2 COLUMNAS Y FORMULARIO INTEGRADO) -->
       <div id="tab-config" class="hidden space-y-4">
         <div class="flex justify-between items-center">
           <h2 class="text-base font-semibold text-white">Parámetros e Ingresos</h2>
-          <span class="text-xs text-emerald-400">Auto-cálculo</span>
-        </div>
-        
-        <!-- Tipo de Cambio -->
-        <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-2">
-          <label class="block text-xs font-medium text-slate-400">Dólar Liquidación del Mes (ARS/USD)</label>
-          <div class="relative">
-            <span class="absolute left-3 top-2 text-emerald-400 font-bold">$</span>
-            <input type="number" id="cfg-tc" step="any" value="1580" oninput="actualizarTC(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-sm text-emerald-400 font-bold focus:outline-none focus:border-blue-500">
+          
+          <!-- Dólar Liquidación Compacto -->
+          <div class="flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 font-medium">TC ($):</span>
+            <input type="number" id="cfg-tc" step="any" value="1580" oninput="actualizarTC(this.value)" class="no-spin w-16 bg-slate-950 border border-slate-800 rounded-lg px-1.5 py-0.5 text-xs text-emerald-400 font-bold focus:outline-none">
           </div>
         </div>
 
-        <!-- Ingresos Desglosados Leandro -->
-        <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-3">
-          <div class="flex justify-between items-center">
+        <!-- 2 Columnas de Ingresos (Leandro y María) -->
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <!-- Columna Leandro -->
+          <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-2">
             <div>
-              <span class="text-xs font-bold text-blue-400">Ingresos Leandro</span>
-              <span id="total-lean-display" class="block text-xs text-slate-400">Total computable: $0</span>
+              <span class="font-bold text-blue-400 block mb-1">Leandro</span>
+              <div id="lista-ingresos-leandro" class="space-y-1.5">
+                <div class="text-[11px] text-slate-500">Sin conceptos</div>
+              </div>
             </div>
-            <button onclick="promptNuevoIngreso('Leandro')" class="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-lg border border-blue-500/30 hover:bg-blue-500/30 transition">
-              + Agregar Concepto
-            </button>
+            <div class="border-t border-slate-800 pt-2 space-y-0.5">
+              <div class="flex justify-between text-[10px] text-slate-400">
+                <span>Fijo (Prorrateo):</span>
+                <span id="tot-fijo-lean" class="font-medium text-white">$0</span>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-400">
+                <span>Variable (Extra):</span>
+                <span id="tot-var-lean" class="font-medium text-white">$0</span>
+              </div>
+              <div class="flex justify-between text-[11px] font-bold text-blue-400 border-t border-slate-800/60 pt-1">
+                <span>Total:</span>
+                <span id="tot-total-lean">$0</span>
+              </div>
+            </div>
           </div>
-          <div id="lista-ingresos-leandro" class="space-y-2 text-xs"></div>
+
+          <!-- Columna María -->
+          <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-2">
+            <div>
+              <span class="font-bold text-rose-400 block mb-1">María</span>
+              <div id="lista-ingresos-maria" class="space-y-1.5">
+                <div class="text-[11px] text-slate-500">Sin conceptos</div>
+              </div>
+            </div>
+            <div class="border-t border-slate-800 pt-2 space-y-0.5">
+              <div class="flex justify-between text-[10px] text-slate-400">
+                <span>Fijo (Prorrateo):</span>
+                <span id="tot-fijo-maria" class="font-medium text-white">$0</span>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-400">
+                <span>Variable (Extra):</span>
+                <span id="tot-var-maria" class="font-medium text-white">$0</span>
+              </div>
+              <div class="flex justify-between text-[11px] font-bold text-rose-400 border-t border-slate-800/60 pt-1">
+                <span>Total:</span>
+                <span id="tot-total-maria">$0</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Ingresos Desglosados María -->
-        <div class="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 space-y-3">
-          <div class="flex justify-between items-center">
-            <div>
-              <span class="text-xs font-bold text-rose-400">Ingresos María</span>
-              <span id="total-maria-display" class="block text-xs text-slate-400">Total computable: $0</span>
-            </div>
-            <button onclick="promptNuevoIngreso('María')" class="text-xs bg-rose-500/20 text-rose-300 px-2 py-1 rounded-lg border border-rose-500/30 hover:bg-rose-500/30 transition">
-              + Agregar Concepto
-            </button>
+        <!-- Botón Desplegable para Agregar Concepto Directo -->
+        <div>
+          <button type="button" onclick="toggleFormIngreso()" class="w-full bg-slate-900 hover:bg-slate-850 text-blue-400 border border-slate-800 font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center space-x-1.5">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span>Agregar Concepto de Ingreso</span>
+          </button>
+        </div>
+
+        <!-- Formulario Integrado (Sin Prompt ni Ventanas Emergentes) -->
+        <div id="form-nuevo-ingreso" class="hidden bg-slate-900/90 border border-blue-500/30 p-3.5 rounded-2xl space-y-3 text-xs">
+          <span class="font-bold text-white block">Nuevo Concepto de Ingreso</span>
+          
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Nombre / Concepto <span class="text-rose-500">*</span></label>
+            <input type="text" id="ingreso-nombre" placeholder="Ej. Sueldo, Nubiz, Cuidar perros..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-blue-500">
           </div>
-          <div id="lista-ingresos-maria" class="space-y-2 text-xs"></div>
+
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Monto <span class="text-rose-500">*</span></label>
+            <input type="number" step="any" id="ingreso-monto" placeholder="0.00" class="no-spin w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white font-bold focus:outline-none focus:border-blue-500">
+          </div>
+
+          <!-- Usuario Selector (Botones) -->
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Usuario del Ingreso <span class="text-rose-500">*</span></label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="setIngresoUsuario('Leandro')" id="btn-user-lean" class="py-1.5 rounded-lg border border-blue-500 bg-blue-500/20 text-blue-300 font-semibold">Leandro</button>
+              <button type="button" onclick="setIngresoUsuario('María')" id="btn-user-maria" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">María</button>
+            </div>
+          </div>
+
+          <!-- Moneda Selector (Botones) -->
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Tipo de Moneda <span class="text-rose-500">*</span></label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="setIngresoMoneda('ARS')" id="btn-mon-ars" class="py-1.5 rounded-lg border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-semibold">ARS ($)</button>
+              <button type="button" onclick="setIngresoMoneda('USD')" id="btn-mon-usd" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">USD (U$D)</button>
+            </div>
+          </div>
+
+          <!-- Tipo Cálculo Selector (Botones) -->
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Tipo de Cálculo <span class="text-rose-500">*</span></label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="setIngresoCalculo(true)" id="btn-calc-fijo" class="py-1.5 rounded-lg border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-semibold">Fijo (Prorrateo)</button>
+              <button type="button" onclick="setIngresoCalculo(false)" id="btn-calc-var" class="py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold">Variable (Extra)</button>
+            </div>
+          </div>
+
+          <div class="pt-1 flex space-x-2">
+            <button type="button" onclick="toggleFormIngreso()" class="w-1/3 py-2 bg-slate-800 text-slate-400 rounded-lg font-semibold">Cancelar</button>
+            <button type="button" onclick="guardarNuevoIngresoDirecto()" class="w-2/3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold shadow-md shadow-blue-600/20">Guardar Concepto</button>
+          </div>
         </div>
       </div>
     </main>
 
-    <!-- Modal para Medios de Pago -->
+    <!-- Modal para Medios de Pago (Corregido) -->
     <div id="modal-medios" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 w-full max-w-sm space-y-4">
         <div class="flex justify-between items-center">
@@ -299,14 +379,16 @@
               <option value="Billetera/Cuenta">Billetera / Cuenta Bancaria</option>
             </select>
           </div>
-          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition">
+          <button type="submit" id="btn-guardar-medio" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl transition">
             Crear Medio de Pago
           </button>
         </form>
 
         <div class="border-t border-slate-800 pt-3 space-y-2">
           <span class="text-xs font-semibold text-slate-400 block">Medios Existentes</span>
-          <div id="lista-medios-modal" class="max-h-40 overflow-y-auto hide-scrollbar space-y-1.5 text-xs"></div>
+          <div id="lista-medios-modal" class="max-h-40 overflow-y-auto hide-scrollbar space-y-1.5 text-xs">
+            <div class="text-slate-500 text-center py-2">Cargando...</div>
+          </div>
         </div>
       </div>
     </div>
@@ -336,12 +418,24 @@
     let tarjetasData = [];
     let ingresosData = [];
 
+    // Estado del nuevo concepto de ingreso
+    let nuevoIngresoUser = 'Leandro';
+    let nuevoIngresoMoneda = 'ARS';
+    let nuevoIngresoEsFijo = true;
+
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.innerText = msg;
       t.classList.remove('hidden');
       setTimeout(() => t.classList.add('hidden'), 2500);
     }
+
+    // Prevenir modificación de valores numéricos al hacer scroll con el mouse
+    document.addEventListener('wheel', function(e) {
+      if (document.activeElement.type === 'number') {
+        document.activeElement.blur();
+      }
+    });
 
     async function init() {
       await cargarConfigTC();
@@ -367,6 +461,7 @@
       tcActual = num;
       document.getElementById('header-tc').innerText = `$${tcActual.toLocaleString()}`;
       await sbClient.from('configuracion_mes').upsert({ mes_anio: '2026-10', tipo_cambio: tcActual });
+      renderIngresos();
       calcularRatiosAutomaticos();
     }
 
@@ -385,41 +480,99 @@
       contLean.innerHTML = '';
       contMaria.innerHTML = '';
 
+      let fijoLean = 0, varLean = 0;
+      let fijoMaria = 0, varMaria = 0;
+
       ingresosData.forEach(item => {
+        const montoARS = item.moneda === 'USD' ? (item.monto * tcActual) : item.monto;
+        
+        if (item.titular === 'Leandro') {
+          if (item.es_computable) fijoLean += montoARS;
+          else varLean += montoARS;
+        } else {
+          if (item.es_computable) fijoMaria += montoARS;
+          else varMaria += montoARS;
+        }
+
         const row = document.createElement('div');
-        row.className = "flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-slate-800";
+        row.className = "bg-slate-950 p-1.5 rounded-lg border border-slate-800 flex justify-between items-center";
         row.innerHTML = `
-          <div>
-            <span class="font-medium text-white">${item.concepto}</span>
-            <span class="block text-[10px] text-slate-500">${item.moneda} • ${item.es_computable ? 'Computable' : 'Extra'}</span>
+          <div class="truncate pr-1">
+            <span class="text-white font-medium text-[11px] block truncate">${item.concepto}</span>
+            <span class="text-[9px] text-slate-500">${item.es_computable ? 'Fijo' : 'Var'} ${item.moneda === 'USD' ? `(USD ${item.monto})` : ''}</span>
           </div>
-          <div class="flex items-center space-x-2">
-            <span class="font-bold text-slate-200">${item.moneda === 'USD' ? 'USD ' : '$'}${parseFloat(item.monto).toLocaleString()}</span>
-            <button onclick="eliminarIngreso('${item.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
+          <div class="flex items-center space-x-1 shrink-0">
+            <span class="text-[11px] font-bold text-slate-200">$${Math.round(montoARS).toLocaleString()}</span>
+            <button onclick="eliminarIngreso('${item.id}')" class="text-rose-400 hover:text-rose-300 p-0.5"><i class="fa-solid fa-trash text-[10px]"></i></button>
           </div>
         `;
+
         if (item.titular === 'Leandro') contLean.appendChild(row);
         else contMaria.appendChild(row);
       });
+
+      if (contLean.children.length === 0) contLean.innerHTML = '<div class="text-[11px] text-slate-500">Sin conceptos</div>';
+      if (contMaria.children.length === 0) contMaria.innerHTML = '<div class="text-[11px] text-slate-500">Sin conceptos</div>';
+
+      // Totales Leandro
+      document.getElementById('tot-fijo-lean').innerText = `$${Math.round(fijoLean).toLocaleString()}`;
+      document.getElementById('tot-var-lean').innerText = `$${Math.round(varLean).toLocaleString()}`;
+      document.getElementById('tot-total-lean').innerText = `$${Math.round(fijoLean + varLean).toLocaleString()}`;
+
+      // Totales María
+      document.getElementById('tot-fijo-maria').innerText = `$${Math.round(fijoMaria).toLocaleString()}`;
+      document.getElementById('tot-var-maria').innerText = `$${Math.round(varMaria).toLocaleString()}`;
+      document.getElementById('tot-total-maria').innerText = `$${Math.round(fijoMaria + varMaria).toLocaleString()}`;
     }
 
-    async function promptNuevoIngreso(titular) {
-      const concepto = prompt(`Concepto del ingreso para ${titular} (ej. Sueldo, Nubiz, Cuidar Perros):`);
-      if (!concepto) return;
-      const monto = parseFloat(prompt('Monto:'));
-      if (isNaN(monto) || monto <= 0) return alert('Monto no válido');
-      const moneda = confirm('¿Es en dólares (USD)? Aceptar = USD, Cancelar = ARS') ? 'USD' : 'ARS';
-      const es_computable = confirm('¿Entra en el porcentaje de prorrateo? Aceptar = Sí, Cancelar = No (Extra)');
+    function toggleFormIngreso() {
+      const f = document.getElementById('form-nuevo-ingreso');
+      f.classList.toggle('hidden');
+    }
 
-      await sbClient.from('fuentes_ingreso').insert([{
+    function setIngresoUsuario(u) {
+      nuevoIngresoUser = u;
+      document.getElementById('btn-user-lean').className = u === 'Leandro' ? 'py-1.5 rounded-lg border border-blue-500 bg-blue-500/20 text-blue-300 font-semibold' : 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-user-maria').className = u === 'María' ? 'py-1.5 rounded-lg border border-rose-500 bg-rose-500/20 text-rose-300 font-semibold' : 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+    }
+
+    function setIngresoMoneda(m) {
+      nuevoIngresoMoneda = m;
+      document.getElementById('btn-mon-ars').className = m === 'ARS' ? 'py-1.5 rounded-lg border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-semibold' : 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-mon-usd').className = m === 'USD' ? 'py-1.5 rounded-lg border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-semibold' : 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+    }
+
+    function setIngresoCalculo(esFijo) {
+      nuevoIngresoEsFijo = esFijo;
+      document.getElementById('btn-calc-fijo').className = esFijo ? 'py-1.5 rounded-lg border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-semibold' : 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+      document.getElementById('btn-calc-var').className = !esFijo ? 'py-1.5 rounded-lg border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-semibold' : 'py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 font-semibold';
+    }
+
+    async function guardarNuevoIngresoDirecto() {
+      const concepto = document.getElementById('ingreso-nombre').value.trim();
+      const monto = parseFloat(document.getElementById('ingreso-monto').value);
+
+      if (!concepto) return alert('Debes escribir un nombre para el concepto');
+      if (isNaN(monto) || monto <= 0) return alert('Ingresa un monto válido mayor a 0');
+
+      const { error } = await sbClient.from('fuentes_ingreso').insert([{
         mes_imputacion: '2026-10',
-        titular,
+        titular: nuevoIngresoUser,
         concepto,
         monto,
-        moneda,
-        es_computable
+        moneda: nuevoIngresoMoneda,
+        es_computable: nuevoIngresoEsFijo
       }]);
-      await cargarIngresos();
+
+      if (error) {
+        alert('Error al guardar ingreso: ' + error.message);
+      } else {
+        showToast('Ingreso agregado');
+        document.getElementById('ingreso-nombre').value = '';
+        document.getElementById('ingreso-monto').value = '';
+        toggleFormIngreso();
+        await cargarIngresos();
+      }
     }
 
     async function eliminarIngreso(id) {
@@ -429,19 +582,19 @@
     }
 
     function calcularRatiosAutomaticos() {
-      let totalLeanArs = 0;
-      let totalMariaArs = 0;
+      let totalLeanFijo = 0;
+      let totalMariaFijo = 0;
 
       ingresosData.filter(i => i.es_computable).forEach(i => {
         const valorEnArs = i.moneda === 'USD' ? i.monto * tcActual : i.monto;
-        if (i.titular === 'Leandro') totalLeanArs += valorEnArs;
-        else totalMariaArs += valorEnArs;
+        if (i.titular === 'Leandro') totalLeanFijo += valorEnArs;
+        else totalMariaFijo += valorEnArs;
       });
 
-      const totalHogar = totalLeanArs + totalMariaArs;
-      if (totalHogar > 0) {
-        ratioLeandro = totalLeanArs / totalHogar;
-        ratioMaria = totalMariaArs / totalHogar;
+      const totalHogarFijo = totalLeanFijo + totalMariaFijo;
+      if (totalHogarFijo > 0) {
+        ratioLeandro = totalLeanFijo / totalHogarFijo;
+        ratioMaria = totalMariaFijo / totalHogarFijo;
       } else {
         ratioLeandro = 0.5;
         ratioMaria = 0.5;
@@ -449,11 +602,9 @@
 
       document.getElementById('ratio-lean').innerText = `${(ratioLeandro * 100).toFixed(1)}%`;
       document.getElementById('ratio-maria').innerText = `${(ratioMaria * 100).toFixed(1)}%`;
-      document.getElementById('total-lean-display').innerText = `Computable: $${Math.round(totalLeanArs).toLocaleString()} ARS`;
-      document.getElementById('total-maria-display').innerText = `Computable: $${Math.round(totalMariaArs).toLocaleString()} ARS`;
     }
 
-    // 2. MEDIOS DE PAGO (CATEGORÍAS Y TITULAR)
+    // 2. MEDIOS DE PAGO (CORREGIDO PARA CARGA Y VISUALIZACIÓN)
     async function cargarMediosPago() {
       const select = document.getElementById('select-tarjeta');
       const listModal = document.getElementById('lista-medios-modal');
@@ -472,6 +623,10 @@
       
       select.innerHTML = '<option value="">Selecciona medio de pago...</option>';
       listModal.innerHTML = '';
+
+      if (data.length === 0) {
+        listModal.innerHTML = '<div class="text-slate-500 text-center py-2">No hay medios creados aún.</div>';
+      }
 
       data.forEach(t => {
         const opt = document.createElement('option');
@@ -496,15 +651,25 @@
 
     async function guardarNuevoMedioPago(e) {
       e.preventDefault();
-      const nombre = document.getElementById('medio-nombre').value;
+      const btn = document.getElementById('btn-guardar-medio');
+      btn.disabled = true;
+      btn.innerText = 'Guardando...';
+
+      const nombre = document.getElementById('medio-nombre').value.trim();
       const titular = document.getElementById('medio-titular').value;
       const tipo = document.getElementById('medio-tipo').value;
 
-      await sbClient.from('medios_pago').insert([{ nombre, titular, tipo }]);
-      document.getElementById('medio-nombre').value = '';
-      modalNuevoMedioPago(false);
-      await cargarMediosPago();
-      showToast('Medio de pago creado');
+      const { error } = await sbClient.from('medios_pago').insert([{ nombre, titular, tipo }]);
+      btn.disabled = false;
+      btn.innerText = 'Crear Medio de Pago';
+
+      if (error) {
+        alert('Error al crear medio de pago: ' + error.message);
+      } else {
+        document.getElementById('medio-nombre').value = '';
+        showToast('Medio de pago creado');
+        await cargarMediosPago();
+      }
     }
 
     async function eliminarMedioPago(id) {
@@ -544,7 +709,7 @@
       if (n > 0) setCuotas(n);
     }
 
-    // 4. DESTINOS Y COMPARTIDO EDITABLE CON (+)
+    // 4. DESTINOS Y COMPARTIDO EDITABLE
     function handleDestinoChange(tipo) {
       const panelEditable = document.getElementById('panel-editable');
       if (tipo === 'editable') {
@@ -564,8 +729,8 @@
       div.className = "flex items-center space-x-2 participante-extra-item";
       div.dataset.nombre = nombre;
       div.innerHTML = `
-        <span class="w-24 text-amber-400 font-medium truncate">${nombre}:</span>
-        <input type="number" step="any" oninput="validarSumaEditable()" placeholder="0" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-amber-400 font-bold focus:outline-none focus:border-cyan-500">
+        <span class="w-20 text-amber-400 font-medium truncate">${nombre}:</span>
+        <input type="number" step="any" oninput="validarSumaEditable()" placeholder="0" class="no-spin flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-amber-400 font-bold focus:outline-none focus:border-cyan-500">
         <button type="button" onclick="this.parentElement.remove(); validarSumaEditable();" class="text-rose-400 p-1"><i class="fa-solid fa-xmark"></i></button>
       `;
       cont.appendChild(div);
@@ -707,7 +872,6 @@
       data.forEach(g => {
         const titularTarjeta = g.medios_pago ? g.medios_pago.titular : 'Leandro';
         
-        // Liquidación
         (g.distribucion || []).forEach(part => {
           if (part.responsable === 'Leandro' && titularTarjeta === 'María') {
             debeLeanAMaria += parseFloat(part.monto);
@@ -718,7 +882,6 @@
           }
         });
 
-        // Item Historial
         const div = document.createElement('div');
         div.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center";
         div.innerHTML = `
@@ -734,7 +897,6 @@
         lista.appendChild(div);
       });
 
-      // Render Clearing
       const diff = debeLeanAMaria - debeMariaALean;
       const clTitulo = document.getElementById('clearing-titulo');
       const clMonto = document.getElementById('clearing-monto');
@@ -750,7 +912,6 @@
         clMonto.innerHTML = `$0 <span class="text-xs font-normal text-slate-400">ARS</span>`;
       }
 
-      // Render Externos
       listaExt.innerHTML = '';
       if (externos.length === 0) {
         listaExt.innerHTML = '<div class="text-slate-500 text-center py-2">Sin externos pendientes.</div>';
