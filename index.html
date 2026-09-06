@@ -218,7 +218,7 @@
         </form>
       </div>
 
-      <!-- PESTAÑA 2: LIQUIDACIÓN (AQUÍ ESTÁ AGREGADA LA CLASE 'hidden') -->
+      <!-- PESTAÑA 2: LIQUIDACIÓN -->
       <div id="tab-clearing" class="hidden space-y-4">
         <div class="flex justify-between items-center">
           <h2 id="titulo-liquidacion-mes" class="text-base font-semibold text-white">Liquidación</h2>
@@ -252,24 +252,7 @@
           </div>
         </div>
 
-        <!-- VENCIMIENTOS Y RESÚMENES POR TARJETA -->
-        <div class="space-y-2">
-          <div class="flex justify-between items-center">
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
-              <i class="fa-solid fa-credit-card mr-1.5 text-blue-400"></i>
-              <span>Vencimientos y Resúmenes Bancarios</span>
-            </h3>
-            <span id="count-resumenes-tarjetas" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">0</span>
-          </div>
-          
-          <div id="lista-resumenes-tarjetas" class="space-y-2 text-xs">
-            <div class="text-slate-500 text-center py-3 bg-slate-900/40 rounded-2xl border border-slate-800">
-              No hay consumos de tarjetas registrados para este mes.
-            </div>
-          </div>
-        </div>
-
-        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas -->
+        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas (SUBIDO) -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
           <div class="grid grid-cols-2 gap-2 text-xs">
@@ -287,6 +270,23 @@
                 <span id="count-vars" class="text-[10px] text-slate-500">0</span>
               </div>
               <div id="lista-gastos-vars" class="space-y-1.5"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VENCIMIENTOS Y RESÚMENES POR TARJETA (BAJADO AL FINAL) -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
+              <i class="fa-solid fa-credit-card mr-1.5 text-blue-400"></i>
+              <span>Vencimientos y Resúmenes Bancarios</span>
+            </h3>
+            <span id="count-resumenes-tarjetas" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">0</span>
+          </div>
+          
+          <div id="lista-resumenes-tarjetas" class="space-y-2 text-xs">
+            <div class="text-slate-500 text-center py-3 bg-slate-900/40 rounded-2xl border border-slate-800">
+              No hay consumos de tarjetas registrados para este mes.
             </div>
           </div>
         </div>
@@ -560,7 +560,7 @@
       await cargarIngresos();
       await cargarMediosPago();
       await cargarGastos();
-      switchTab('cargar'); // Asegura iniciar siempre en la solapa de carga
+      switchTab('cargar');
     }
 
     function renderSelectorMeses() {
@@ -1377,7 +1377,7 @@
       }
     }
 
-    // 7. CARGA DE LIQUIDACIÓN Y RESÚMENES
+    // 7. CARGA DE LIQUIDACIÓN Y RESÚMENES (ORDEN: HISTORIAL ARRIBA, RESÚMENES ABAJO)
     async function cargarGastos() {
       const { data, error } = await sbClient
         .from('gastos')
