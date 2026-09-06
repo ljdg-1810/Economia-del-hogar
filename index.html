@@ -114,7 +114,7 @@
             <i class="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5 text-sm"></i>
             <div>
               <span class="font-bold block">¡Atención con la fecha de corte!</span>
-              <span id="alerta-tdc-texto" class="text-[11px] text-rose-200/90">Esta tarjeta corta el día ... Si esperas a la fecha de corte, el gasto entrará recién en el resumen del próximo mes.</span>
+              <span id="alerta-tdc-texto" class="text-[11px] text-rose-200/90">Esta tarjeta corta próximamente.</span>
             </div>
           </div>
 
@@ -265,7 +265,7 @@
           </div>
         </div>
 
-        <!-- Historial en 2 Columnas: Fijos y Variables/Cuotas (Ubicado arriba) -->
+        <!-- Historial de Gastos (Fijos y Variables) -->
         <div class="space-y-2">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Historial de Gastos</h3>
           <div class="grid grid-cols-2 gap-2 text-xs">
@@ -287,7 +287,24 @@
           </div>
         </div>
 
-        <!-- VENCIMIENTOS Y RESÚMENES POR TARJETA (Ubicado abajo) -->
+        <!-- PANEL DE SEGUIMIENTO Y COBRO DE TERCEROS -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
+              <i class="fa-solid fa-users-gear mr-1.5 text-amber-400"></i>
+              <span>Seguimiento y Cobro de Terceros</span>
+            </h3>
+            <span id="badge-pendientes-terceros" class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">0 pendientes</span>
+          </div>
+
+          <div id="panel-seguimiento-terceros" class="space-y-2 text-xs">
+            <div class="text-slate-500 text-center py-3 bg-slate-900/40 rounded-2xl border border-slate-800">
+              No hay cuentas por cobrar a terceros este mes.
+            </div>
+          </div>
+        </div>
+
+        <!-- VENCIMIENTOS Y RESÚMENES BANCARIOS -->
         <div class="space-y-2">
           <div class="flex justify-between items-center">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center">
@@ -305,7 +322,7 @@
         </div>
       </div>
 
-      <!-- PESTAÑA 3: PARÁMETROS E INGRESOS Y GESTIÓN DE CORTES/VENCIMIENTOS -->
+      <!-- PESTAÑA 3: PARÁMETROS E INGRESOS Y AJUSTES -->
       <div id="tab-config" class="hidden space-y-4">
         <div class="flex justify-between items-center">
           <h2 class="text-base font-semibold text-white">Parámetros e Ingresos</h2>
@@ -540,6 +557,7 @@
     let ingresosData = [];
     let gastosCache = [];
     let tdcFechasMap = {};
+    let cobrosTercerosMap = {};
 
     const mesActualReal = "2026-10";
     let mesActivo = mesActualReal;
@@ -591,6 +609,7 @@
       await cargarIngresos();
       await cargarMediosPago();
       await cargarTdcFechas();
+      await cargarCobrosTerceros();
       await cargarGastos();
       switchTab('cargar');
     }
@@ -630,6 +649,7 @@
       await cargarConfigTC();
       await cargarIngresos();
       await cargarTdcFechas();
+      await cargarCobrosTerceros();
       await cargarGastos();
     }
 
@@ -1130,7 +1150,46 @@
       }
     }
 
-    // 5. LÓGICA DE GASTOS: CUOTAS, TIPO Y ALERTA DE CORTE
+    // 5. SEGUIMIENTO Y COBRO DE TERCEROS
+    async function cargarCobrosTerceros() {
+      try {
+        const { data } = await sbClient.from('cobros_terceros').select('*').eq('mes_anio', mesActivo);
+        cobrosTercerosMap = {};
+        if (data) {
+          data.forEach(c => {
+            const key = `${c.gasto_id}_${c.nombre_tercero}`;
+            cobrosTercerosMap[key] = c.estado;
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function toggleEstadoCobroTercero(gastoId, nombreTercero, cobrador, monto) {
+      const key = `${gastoId}_${nombreTercero}`;
+      const estadoActual = cobrosTercerosMap[key] || 'pendiente';
+      const nuevoEstado = estadoActual === 'pendiente' ? 'cobrado' : 'pendiente';
+
+      const { error } = await sbClient.from('cobros_terceros').upsert({
+        mes_anio: mesActivo,
+        gasto_id: gastoId,
+        nombre_tercero: nombreTercero,
+        cobrador: cobrador,
+        monto: monto,
+        estado: nuevoEstado
+      }, { onConflict: 'mes_anio, gasto_id, nombre_tercero' });
+
+      if (error) {
+        alert('Error al actualizar estado: ' + error.message);
+      } else {
+        cobrosTercerosMap[key] = nuevoEstado;
+        showToast(nuevoEstado === 'cobrado' ? `Cobro de ${nombreTercero} registrado` : `Cobro revertido a pendiente`);
+        await cargarGastos();
+      }
+    }
+
+    // 6. LÓGICA DE GASTOS: CUOTAS, TIPO Y ALERTA DE CORTE
     function handleMedioPagoChange() {
       const id = document.getElementById('select-tarjeta').value;
       const secCuotas = document.getElementById('seccion-cuotas');
@@ -1245,7 +1304,7 @@
       actualizarDistribuidores();
     }
 
-    // 6. COMPARTIDO EDITABLE
+    // 7. COMPARTIDO EDITABLE
     function handleDestinoChange(tipo) {
       const panelEditable = document.getElementById('panel-editable');
       if (tipo === 'editable') {
@@ -1316,7 +1375,7 @@
       return cuadra;
     }
 
-    // 7. GUARDAR GASTO
+    // 8. GUARDAR GASTO
     async function guardarGasto(e) {
       e.preventDefault();
       const editId = document.getElementById('gasto-edit-id').value;
@@ -1430,6 +1489,7 @@
         renderSelectorMeses();
         await cargarConfigTC();
         await cargarIngresos();
+        await cargarCobrosTerceros();
         await cargarGastos();
         switchTab('clearing');
       }
@@ -1512,7 +1572,7 @@
       }
     }
 
-    // 8. CARGA DE LIQUIDACIÓN Y RESÚMENES CON FECHAS DE TDC
+    // 9. CARGA DE LIQUIDACIÓN Y RENDER DE TERCEROS
     async function cargarGastos() {
       const { data, error } = await sbClient
         .from('gastos')
@@ -1530,10 +1590,12 @@
       const contFijos = document.getElementById('lista-gastos-fijos');
       const contVars = document.getElementById('lista-gastos-vars');
       const contTarjetas = document.getElementById('lista-resumenes-tarjetas');
+      const contTerceros = document.getElementById('panel-seguimiento-terceros');
 
       contFijos.innerHTML = '';
       contVars.innerHTML = '';
       contTarjetas.innerHTML = '';
+      contTerceros.innerHTML = '';
 
       let fijosCount = 0, varsCount = 0;
 
@@ -1578,11 +1640,16 @@
           } else if (part.responsable === 'María') {
             totalPagaMariaBruto += m;
           } else {
+            const key = `${g.id}_${part.responsable}`;
+            const estado = cobrosTercerosMap[key] || 'pendiente';
             listaTercerosACobrar.push({
+              gastoId: g.id,
               nombre: part.responsable,
               monto: m,
               cobrador: part.cobrador || 'No definido',
-              concepto: g.concepto
+              concepto: g.concepto,
+              medioPago: g.medios_pago ? g.medios_pago.nombre : 'Tarjeta',
+              estado: estado
             });
           }
         });
@@ -1701,6 +1768,45 @@
       if (fijosCount === 0) contFijos.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos fijos</div>';
       if (varsCount === 0) contVars.innerHTML = '<div class="text-[10px] text-slate-500 text-center py-2">Sin gastos variables</div>';
 
+      // RENDERIZAR PANEL DE SEGUIMIENTO Y COBRO DE TERCEROS
+      const pendientesCount = listaTercerosACobrar.filter(t => t.estado === 'pendiente').length;
+      document.getElementById('badge-pendientes-terceros').innerText = `${pendientesCount} pendiente${pendientesCount !== 1 ? 's' : ''}`;
+
+      if (listaTercerosACobrar.length === 0) {
+        contTerceros.innerHTML = '<div class="text-slate-500 text-center py-3 bg-slate-900/40 rounded-2xl border border-slate-800">No hay cuentas por cobrar a terceros este mes.</div>';
+      } else {
+        listaTercerosACobrar.forEach(t => {
+          const isCobrado = t.estado === 'cobrado';
+          const cardT = document.createElement('div');
+          cardT.className = `p-3 rounded-2xl border transition-all flex justify-between items-center ${isCobrado ? 'bg-slate-950/60 border-emerald-500/30 opacity-75' : 'bg-slate-900 border-slate-800 shadow-sm'}`;
+
+          cardT.innerHTML = `
+            <div class="space-y-0.5">
+              <div class="flex items-center space-x-1.5">
+                <span class="font-bold text-white text-xs">${t.nombre}</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold ${isCobrado ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}">
+                  ${isCobrado ? 'Cobrado' : 'Pendiente'}
+                </span>
+              </div>
+              <span class="text-[10px] text-slate-400 block">${t.concepto} • ${t.medioPago}</span>
+              <span class="text-[10px] text-slate-300 block">Cobra: <strong class="${t.cobrador === 'Leandro' ? 'text-blue-400' : 'text-rose-400'}">${t.cobrador}</strong></span>
+            </div>
+
+            <div class="text-right space-y-1.5 shrink-0">
+              <span class="text-sm font-black ${isCobrado ? 'text-slate-400 line-through' : 'text-emerald-400'} block">
+                $${Math.round(t.monto).toLocaleString()}
+              </span>
+              <button onclick="toggleEstadoCobroTercero('${t.gastoId}', '${t.nombre}', '${t.cobrador}', ${t.monto})" class="px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${isCobrado ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' : 'bg-emerald-600/30 text-emerald-300 border-emerald-500/40 hover:bg-emerald-600/50'}">
+                <i class="fa-solid ${isCobrado ? 'fa-rotate-left mr-1' : 'fa-check mr-1'}"></i>
+                ${isCobrado ? 'Desmarcar' : 'Marcar Cobrado'}
+              </button>
+            </div>
+          `;
+          contTerceros.appendChild(cardT);
+        });
+      }
+
+      // RENDERIZAR RESÚMENES DE TARJETAS
       const listaCards = Object.values(resumenesTarjetas);
       document.getElementById('count-resumenes-tarjetas').innerText = listaCards.length;
 
@@ -1819,7 +1925,7 @@
       await cargarGastos();
     }
 
-    // 9. MODAL TOTAL DE PAGOS
+    // 10. MODAL TOTAL DE PAGOS
     function abrirModalTotalPagos() {
       const data = window.clearingCalculado || { totalLeandro: 0, totalMaria: 0, terceros: [] };
       const diff = data.totalLeandro - data.totalMaria;
@@ -1841,10 +1947,12 @@
       const contExt = document.getElementById('modal-lista-externos');
       contExt.innerHTML = '';
 
-      if (data.terceros.length === 0) {
-        contExt.innerHTML = '<div class="text-slate-500 text-center py-2">Sin terceros pendientes este mes.</div>';
+      const pendientes = data.terceros.filter(x => x.estado === 'pendiente');
+
+      if (pendientes.length === 0) {
+        contExt.innerHTML = '<div class="text-slate-500 text-center py-2">Sin terceros pendientes de cobro este mes.</div>';
       } else {
-        data.terceros.forEach(x => {
+        pendientes.forEach(x => {
           const div = document.createElement('div');
           div.className = "flex justify-between items-center p-2 bg-slate-950 rounded-xl border border-slate-800";
           div.innerHTML = `
@@ -1865,9 +1973,8 @@
       document.getElementById('modal-total-pagos').classList.toggle('hidden', !show);
     }
 
-    // GESTIÓN DE PESTAÑAS (CON REINICIO DE SCROLL HACIA ARRIBA)
+    // GESTIÓN DE PESTAÑAS (REINICIO AUTOMÁTICO DE SCROLL)
     function switchTab(tab) {
-      // Reiniciar scroll al tope
       const mainEl = document.querySelector('main');
       if (mainEl) mainEl.scrollTop = 0;
       window.scrollTo(0, 0);
